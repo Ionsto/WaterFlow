@@ -1,0 +1,6 @@
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\bin\WaterFlow.dll.config
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\bin\WaterFlow.dll
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\bin\WaterFlow.pdb
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\obj\Debug\WaterFlow.csprojResolveAssemblyReference.cache
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\obj\Debug\WaterFlow.dll
+C:\Users\mpfs\Documents\GitHub\Waterflow\WaterFlow\WaterFlow\obj\Debug\WaterFlow.pdb
