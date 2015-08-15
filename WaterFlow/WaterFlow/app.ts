@@ -1,3 +1,4 @@
+module normal{
 class Grid {
     public SizeX = 100;
     public SizeY = 100;
@@ -56,17 +57,21 @@ class World {
     public PickedUpSand = 0;
     public WorldSize = 100;
     public GridToCanvas = 5;
-    public FlowPerTick = 0.4;
-    public SiltPerTickDirect = 10;
-    public SiltPerTickIndirect = -10;
+    ///
+    public UpdatePerTick = 2;
+    public FlowPerTick = 0.5;
+    public SiltPerTickDirect = 0.1;
+    public SiltPerTickIndirect = 1;
     public SiltPoint = 0;
     public SiltPerVolume = 100;
     public Inflow = 10;
     public OutFlow = 10;
+    ////
     public WaterHeight = new Grid(this.WorldSize, this.WorldSize);
     public WorldType = new Grid(this.WorldSize, this.WorldSize);//0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
     public WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
-    public GroundHeight = new Grid(this.WorldSize, this.WorldSize,1);
+    public GroundHeight = new Grid(this.WorldSize, this.WorldSize, 1);
+    public GroundHeightBuffer = new Grid(this.WorldSize, this.WorldSize, 1);
     public VelocityMapX = new Grid(this.WorldSize, this.WorldSize);
     public VelocityMapY = new Grid(this.WorldSize, this.WorldSize);
     public SiltMap = new Grid(this.WorldSize, this.WorldSize);
@@ -93,10 +98,10 @@ class World {
         this.WorldType.SetValueAt(this.WorldSize, this.WorldSize, 3);
     }
     public UpdateWater() {
+        this.VelocityMapX.SetValueAt(x, y, 0);
+        this.VelocityMapY.SetValueAt(x, y, 0);
         for (var x = 0; x < this.WaterHeight.SizeX; ++x) {
             for (var y = 0; y < this.WaterHeight.SizeY; ++y) {
-                this.VelocityMapX.SetValueAt(x, y, 0);
-                this.VelocityMapY.SetValueAt(x, y, 0);
                 //Simulate :
                 //Work out heighest ajoining 
                 //var TotalHeight = this.WaterHeight.GetValueAt(x, y) + this.GroundHeight.GetValueAt(x, y);
@@ -148,7 +153,6 @@ class World {
                             this.SiltMapBuffer.AddValueAt(AjoiningCellHeights[j][0], AjoiningCellHeights[j][1],Siltflow);
                             this.VelocityMapX.AddValueAt(x, y, Siltflow * (AjoiningCellHeights[j][0] - x));
                             this.VelocityMapY.AddValueAt(x, y, Siltflow * (AjoiningCellHeights[j][1] - y));
-                            //this.VelocityMap.AddValueAt(AjoiningCellHeights[j][0], AjoiningCellHeights[j][1], Flow);
                         }
                     }
                     --Outflowpaths;
@@ -174,9 +178,9 @@ class World {
         this.WaterHeight = this.WaterHeightBuffer;
         this.WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
         this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
-        this.SiltMap = this.SiltMapBuffer;
-        this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
-        this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
+        //this.SiltMap = this.SiltMapBuffer;
+        //this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
+        //this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
     }
     DirectSilting(x, y) {
         //Direct of the floor
@@ -259,10 +263,70 @@ class World {
             }
         }
     }
+    Erosion() {
+        for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
+            for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
+                if (this.WaterHeight.GetValueAt(x, y) > 0) {
+                    var SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+                    var AjoiningCellHeights = [];
+                    for (var i = 0; i < SearchSpace.length; ++i) {
+                        var offset = SearchSpace[i];
+                        var value = this.GroundHeight.GetValueAt(x - offset[0], y - offset[1]);
+                        if (x - offset[0] < 0 || y - offset[1] < 0) { value = null; }
+                        if (x - offset[0] > this.GroundHeight.SizeX || y - offset[1] > this.GroundHeight.SizeY) { value = null; }
+                        AjoiningCellHeights.push([x - offset[0], y - offset[1], value]);
+                    }
+                    for (var i = 0; i < AjoiningCellHeights.length; ++i) {
+                        for (var j = 0; j < AjoiningCellHeights.length - 1; ++j) {
+                            if (AjoiningCellHeights[j][2] != null) {
+                                if (AjoiningCellHeights[j][2] < AjoiningCellHeights[j + 1][2] || AjoiningCellHeights[j + 1][2] == null) {
+                                    var temp = AjoiningCellHeights[j];
+                                    AjoiningCellHeights[j] = AjoiningCellHeights[j + 1];
+                                    AjoiningCellHeights[j + 1] = temp;
+                                }
+                            }
+                        }
+                    }
+                    var Outflowpaths = 4;
+                    var TakenFlow = 0;
+                    var GroundHeightCurrent = this.GroundHeight.GetValueAt(x, y);
+                    for (var i = 0; i < AjoiningCellHeights.length; ++i) {
+                        if (AjoiningCellHeights[i][2] == null) {
+                            continue;
+                        }
+                        if (AjoiningCellHeights[i][2] > GroundHeightCurrent && this.WaterHeight.GetValueAt(x, y) > 0) {
+                            //Flow Water Out
+                            var HeightDiff = AjoiningCellHeights[i][2] - GroundHeightCurrent;
+                            var VX = this.VelocityMapX.GetValueAt(x, y);
+                            var VY = this.VelocityMapY.GetValueAt(x, y);
+                            var Speed = Math.sqrt((VX * VX) + (VY * VY));
+                            if (this.Sign(VX) == -offset[0] && this.Sign(VY) == -offset[1]) {
+                                Speed *= 100;
+                            }
+                            var Flow = this.SiltPerTickIndirect * HeightDiff * Speed * this.WaterHeight.GetValueAt(x,y);
+                            this.GroundHeightBuffer.AddValueAt(AjoiningCellHeights[i][0], AjoiningCellHeights[i][1], -Flow);
+                        }
+                    }
+                    this.GroundHeightBuffer.AddValueAt(x, y, GroundHeightCurrent - this.SiltPerTickDirect);
+                }
+                else {
+                    this.GroundHeightBuffer.AddValueAt(x, y, this.GroundHeight.GetValueAt(x, y));
+                }
+                if (this.GroundHeightBuffer.GetValueAt(x, y) < 0) {
+                    this.GroundHeightBuffer.SetValueAt(x, y, 0);
+                }
+            }
+        }
+        this.GroundHeight = this.GroundHeightBuffer;
+        this.GroundHeightBuffer = new Grid(this.WorldSize,this.WorldSize);
+        this.GroundHeightBuffer.MaxHeight = this.GroundHeight.MaxHeight;
+    }
     Update() {
-        for (var i = 0; i < 4; ++i) {
+        for (var i = 0; i < this.UpdatePerTick; ++i) {
             this.UpdateWater();
-            this.UpdateSilting();
+            this.Erosion();
+            //this.UpdateShuffle();
+            //this.UpdateSilting();
         }
     }
     Render() {
@@ -276,7 +340,7 @@ class World {
                 var B = 119 * BrightnessDec;
                 if (this.WaterHeight.GetValueAt(x, y) > 0) {
                     //00D4FF Water
-                    var BrightnessDecWater = 1 - (this.WaterHeight.GetValueAt(x, y) / (this.WaterHeight.MaxHeight));
+                    var BrightnessDecWater = 1 - (this.WaterHeight.GetValueAt(x, y) / (0.5 * this.WaterHeight.MaxHeight));
                     //BrightnessDecWater = Math.max(0, Math.min(1, BrightnessDecWater))
                     R /= 2;
                     G += 212 * BrightnessDecWater;
@@ -399,3 +463,4 @@ document.getElementById("ResetButton").onclick = function (event: MouseEvent) {
 };
 //world.MainLoop();
 Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
+};
