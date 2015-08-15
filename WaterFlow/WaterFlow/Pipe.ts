@@ -61,12 +61,12 @@ module Pipe {
         public DeltaTime = 1;
         public Gravity = 10;
         public PipeLength = 1;
-        public PipeCrossSection = 5;
-        public UpdatePerTick = 4;
+        public PipeCrossSection = 0.01;
+        public UpdatePerTick = 2;
         public SedimentDepositingConst = 0.1;
-        public SedimentDissolvingConst = 0.1;
-        public SedimentCapacityConst = 0;
-        public Inflow = 10;
+        public SedimentDissolvingConst = 0.01;
+        public SedimentCapacityConst = 0.001;
+        public Inflow = 100;
         public OutFlow = 10;
         ////
         public GroundType = new Grid(this.WorldSize, this.WorldSize);//0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
@@ -192,41 +192,32 @@ module Pipe {
             this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
         }
-        GetTilt(x, y): number{
+        GetTilt(x, y): number {
             var DX = 0;
             var DY = 0;
-            var count = 1;
-
-            ///TODO
-            //Subtract height of left from right itiritvly
-            //10,5,0
-            //10- 5 = 5
-            //5 - 0 = 5
-            //fall = 10
-            //10,5,10
-            //10 - 5 = 5
-            //5 - 10 = -5
-            //fall = 0
-            for (var i = 0; i < this.SearchSpace.length; ++i) {
-                var Offset = this.SearchSpace[i];
-                if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
-                    DX += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]) - this.GroundHeight.GetValueAt(x,y);
-                    ++count;
+            var count = 0;
+            for (var i = -1; i < 1; ++i) {
+                if (!(x + i < 0 || y < 0 || x + i > this.GroundHeight.SizeX || y > this.GroundHeight.SizeY)) {
+                    if (!(x + i + 1 < 0 || y < 0 || x + i + 1 > this.GroundHeight.SizeX || y > this.GroundHeight.SizeY)) {
+                        DX += this.GroundHeight.GetValueAt(x + i, y) - this.GroundHeight.GetValueAt(x + i + 1, y);
+                        ++count;
+                    }
                 }
             }
             DX /= count;
-            count = 1;
-            for (var i = 1; i < this.SearchSpace.length; i += 2) {
-                var Offset = this.SearchSpace[i];
-                if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
-                    DY += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]) - this.GroundHeight.GetValueAt(x, y);
-                    ++count;
+            count = 0;
+            for (var i = -1; i < 1; ++i) {
+                if (!(x < 0 || y + i < 0 || x > this.GroundHeight.SizeX || y + i > this.GroundHeight.SizeY)) {
+                    if (!(x < 0 || y + i + 1 < 0 || x > this.GroundHeight.SizeX || y + i + 1 > this.GroundHeight.SizeY)) {
+                        DY += this.GroundHeight.GetValueAt(x, y + i) - this.GroundHeight.GetValueAt(x, y + i + 1);
+                        ++count;
+                    }
                 }
             }
             DY /= count;
-            var theta = Math.tan(DX / 3) + Math.tan(DY / 3);
+            var theta = Math.atan(DX) + Math.atan(DY);
             //avradge tilt
-            return theta/2;
+            return theta / 2;
         }
         UpdateSilting() {
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
@@ -237,14 +228,19 @@ module Pipe {
                     var Capacity = this.SedimentCapacityConst * Speed * Math.sin(this.GetTilt(x, y));
                     if (Capacity > this.SiltMap.GetValueAt(x, y)) {
                         var ChangeSilt = this.SedimentDissolvingConst * (Capacity - this.SiltMap.GetValueAt(x, y));
-                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
-                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) + ChangeSilt);
+                        if (this.GroundHeight.GetValueAt(x, y) - ChangeSilt > 0) {
+                            this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
+                            this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) + ChangeSilt);
+                        }
                     }
-                    else
-                    {
+                    else if (Capacity < this.SiltMap.GetValueAt(x, y)) {
                         var ChangeSilt = this.SedimentDepositingConst * (this.SiltMap.GetValueAt(x, y) - Capacity);
                         this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) + ChangeSilt);
                         this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) - ChangeSilt);
+                    }
+                    else {
+                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
+                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y));
                     }
                 }
             }
@@ -274,8 +270,8 @@ module Pipe {
                         }
                         VY -= this.OutFlowMap[i].GetValueAt(x, y);
                     }
-                    this.VelocityMapX.SetValueAt(x, y, VX);
-                    this.VelocityMapY.SetValueAt(x, y, VY);
+                    this.VelocityMapX.SetValueAt(x, y, -VX);
+                    this.VelocityMapY.SetValueAt(x, y, -VY);
                 }
             }
         }
@@ -287,6 +283,7 @@ module Pipe {
                 this.UpdateSilting();
                 this.UpdateSiltTransport();
             }
+            //this.Inflow += 1;
         }
         Render() {
             //this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
@@ -325,7 +322,7 @@ module Pipe {
             //if (Button == 0) { DeltaHeight = HeightPerSecond; }
             //if (Button == 2) { DeltaHeight = HeightPerSecond; }
             if (Button == 1) { //DeltaHeight = -HeightPerSecond; }
-                document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground,";
+                document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
                 //console.log(this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY));
             }
             var Direction = 0;
@@ -336,27 +333,30 @@ module Pipe {
                 Direction = -1;
             }
             if (Direction != 0) {
-                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 3000);
+                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction,100);
             }
             //Button = -1;
         }
         public DistributionFunction(x, y) {
-            return Math.abs(x) + Math.abs(y);
+            return -((x * x) + (y * y));
+            //return Math.abs(x) + Math.abs(y);
         }
         public ManipulateSand(ChunkX, ChunkY, Size, Direction, factor) {
             var SizeOffset = Size / 2;
             var Area = 0;
             var Factor = factor;
-            var Min = this.DistributionFunction(-SizeOffset, -SizeOffset);
+            var Min = -this.DistributionFunction(-SizeOffset, 0);
             for (var xo = 0; xo < Size; ++xo) {
                 var X = MouseChunkX - (xo - SizeOffset);
                 if (X < 0) { continue; }
+                if (X > this.WorldSize) { continue; }
                 if (X > this.WorldSize) { continue; }
                 for (var yo = 0; yo < Size; ++yo) {
                     var Y = MouseChunkY - (yo - SizeOffset);
                     if (Y < 0) { continue; }
                     if (Y > this.WorldSize) { continue; }
-                    Area += this.DistributionFunction(X, Y) + Min;
+                    if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) { continue; }
+                    Area += this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                 }
             }
             if (Factor * Area * Direction > this.PickedUpSand) {
@@ -370,6 +370,7 @@ module Pipe {
                     var Y = MouseChunkY - (yo - SizeOffset);
                     if (Y < 0) { continue; }
                     if (Y > this.WorldSize) { continue; }
+                    if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) { continue; }
                     //Simulate
                     var Distribution = this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                     Distribution = (Direction * Distribution * Factor) / (Area);
