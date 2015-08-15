@@ -63,8 +63,9 @@ module Pipe {
         public PipeLength = 1;
         public PipeCrossSection = 5;
         public UpdatePerTick = 2;
-        public SedimentDepositingConst = 10;
-        public SedimentDissolvingConst = 10;
+        public SedimentDepositingConst = 1;
+        public SedimentDissolvingConst = 1;
+        public SedimentCapacityConst = 1;
         public Inflow = 10;
         public OutFlow = 10;
         ////
@@ -213,12 +214,26 @@ module Pipe {
                     var VX = this.VelocityMapX.GetValueAt(x, y);
                     var VY = this.VelocityMapY.GetValueAt(x, y);
                     var Speed = Math.sqrt((VX * VX) + (VY * VY));
-                    var Capacity = this.SedimentCapacity * Speed * Math.sin(this.GetTilt(x,y));
+                    var Capacity = this.SedimentCapacityConst * Speed * Math.sin(this.GetTilt(x, y));
+                    if (Capacity > this.SiltMap.GetValueAt(x, y)) {
+                        var ChangeSilt = this.SedimentDissolvingConst * (Capacity - this.SiltMap.GetValueAt(x, y));
+                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
+                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) + ChangeSilt);
+                    }
+                    else
+                    {
+                        var ChangeSilt = this.SedimentDepositingConst * (this.SiltMap.GetValueAt(x, y) - Capacity);
+                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) + ChangeSilt);
+                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) - ChangeSilt);
+                    }
                 }
             }
             this.GroundHeight = this.GroundHeightBuffer;
             this.GroundHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.GroundHeightBuffer.MaxHeight = this.GroundHeight.MaxHeight;
+            this.SiltMap = this.SiltMapBuffer;
+            this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
+            this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
         }
         UpdateVelocity() {
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
@@ -248,8 +263,8 @@ module Pipe {
             for (var i = 0; i < this.UpdatePerTick; ++i) {
                 this.UpdateWorldFlow();
                 this.UpdateWater();
-                //this.UpdateVelocity();
-                //this.UpdateSilting();
+                this.UpdateVelocity();
+                this.UpdateSilting();
                 //this.UpdateSiltTransport();
             }
         }
