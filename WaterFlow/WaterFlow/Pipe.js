@@ -64,12 +64,13 @@ var Pipe;
             this.WorldSize = 100;
             this.GridToCanvas = 5;
             ///
-            this.DeltaTime = 0.1;
+            this.DeltaTime = 1;
             this.Gravity = 10;
             this.PipeLength = 1;
             this.PipeCrossSection = 5;
             this.UpdatePerTick = 2;
-            this.SedimentCapacity = 10;
+            this.SedimentDepositingConst = 10;
+            this.SedimentDissolvingConst = 10;
             this.Inflow = 10;
             this.OutFlow = 10;
             ////

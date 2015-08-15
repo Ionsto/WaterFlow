@@ -63,7 +63,8 @@ module Pipe {
         public PipeLength = 1;
         public PipeCrossSection = 5;
         public UpdatePerTick = 2;
-        public SedimentCapacity = 10;
+        public SedimentDepositingConst = 10;
+        public SedimentDissolvingConst = 10;
         public Inflow = 10;
         public OutFlow = 10;
         ////
