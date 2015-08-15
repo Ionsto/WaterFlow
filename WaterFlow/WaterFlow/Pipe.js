@@ -71,7 +71,7 @@ var Pipe;
             this.UpdatePerTick = 2;
             this.SedimentDepositingConst = 0.1;
             this.SedimentDissolvingConst = 0.01;
-            this.SedimentCapacityConst = 0.001;
+            this.SedimentCapacityConst = 0.01;
             this.Inflow = 100;
             this.OutFlow = 10;
             ////
@@ -275,8 +275,8 @@ var Pipe;
                         }
                         VY -= this.OutFlowMap[i].GetValueAt(x, y);
                     }
-                    this.VelocityMapX.SetValueAt(x, y, -VX);
-                    this.VelocityMapY.SetValueAt(x, y, -VY);
+                    this.VelocityMapX.SetValueAt(x, y, VX);
+                    this.VelocityMapY.SetValueAt(x, y, VY);
                 }
             }
         };

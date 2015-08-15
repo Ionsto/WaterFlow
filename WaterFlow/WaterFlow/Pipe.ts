@@ -65,7 +65,7 @@ module Pipe {
         public UpdatePerTick = 2;
         public SedimentDepositingConst = 0.1;
         public SedimentDissolvingConst = 0.01;
-        public SedimentCapacityConst = 0.001;
+        public SedimentCapacityConst = 0.01;
         public Inflow = 100;
         public OutFlow = 10;
         ////
@@ -270,8 +270,8 @@ module Pipe {
                         }
                         VY -= this.OutFlowMap[i].GetValueAt(x, y);
                     }
-                    this.VelocityMapX.SetValueAt(x, y, -VX);
-                    this.VelocityMapY.SetValueAt(x, y, -VY);
+                    this.VelocityMapX.SetValueAt(x, y, VX);
+                    this.VelocityMapY.SetValueAt(x, y, VY);
                 }
             }
         }
