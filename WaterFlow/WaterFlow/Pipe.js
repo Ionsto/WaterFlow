@@ -68,10 +68,10 @@ var Pipe;
             this.Gravity = 10;
             this.PipeLength = 1;
             this.PipeCrossSection = 5;
-            this.UpdatePerTick = 2;
-            this.SedimentDepositingConst = 1;
-            this.SedimentDissolvingConst = 1;
-            this.SedimentCapacityConst = 1;
+            this.UpdatePerTick = 4;
+            this.SedimentDepositingConst = 0.1;
+            this.SedimentDissolvingConst = 0.1;
+            this.SedimentCapacityConst = 0;
             this.Inflow = 10;
             this.OutFlow = 10;
             ////
@@ -181,6 +181,14 @@ var Pipe;
             for (var x = 0; x < this.SiltMap.SizeX; ++x) {
                 for (var y = 0; y < this.SiltMap.SizeY; ++y) {
                     if (this.WaterHeight.GetValueAt(x, y) > 0) {
+                        var OffsetX = this.Sign(this.VelocityMapX.GetValueAt(x, y) * this.DeltaTime);
+                        var OffsetY = this.Sign(this.VelocityMapY.GetValueAt(x, y) * this.DeltaTime);
+                        if (x - OffsetX < 0 || y - OffsetY < 0 || x - OffsetX > this.WaterHeight.SizeX || y - OffsetY > this.WaterHeight.SizeY) {
+                            //exception
+                            this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
+                        } else {
+                            this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x - OffsetX, y - OffsetY));
+                        }
                     }
                 }
             }
@@ -194,10 +202,11 @@ var Pipe;
             var DX = 0;
             var DY = 0;
             var count = 1;
-            for (var i = 0; i < this.SearchSpace.length; i += 2) {
+
+            for (var i = 0; i < this.SearchSpace.length; ++i) {
                 var Offset = this.SearchSpace[i];
                 if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
-                    DX += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]);
+                    DX += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]) - this.GroundHeight.GetValueAt(x, y);
                     ++count;
                 }
             }
@@ -206,7 +215,7 @@ var Pipe;
             for (var i = 1; i < this.SearchSpace.length; i += 2) {
                 var Offset = this.SearchSpace[i];
                 if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
-                    DY += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]);
+                    DY += this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]) - this.GroundHeight.GetValueAt(x, y);
                     ++count;
                 }
             }
@@ -271,7 +280,7 @@ var Pipe;
                 this.UpdateWater();
                 this.UpdateVelocity();
                 this.UpdateSilting();
-                //this.UpdateSiltTransport();
+                this.UpdateSiltTransport();
             }
         };
         World.prototype.Render = function () {
