@@ -23,9 +23,9 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Pipe.ts" />
-    <TypeScriptCompile Include="app.ts" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Home.pubxml" />
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>

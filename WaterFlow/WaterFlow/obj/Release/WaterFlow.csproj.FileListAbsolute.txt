@@ -1,0 +1,5 @@
+C:\Users\mpfs\Contacts\Documents\GitHub\WaterFlow\WaterFlow\WaterFlow\bin\WaterFlow.dll.config
+C:\Users\mpfs\Contacts\Documents\GitHub\WaterFlow\WaterFlow\WaterFlow\bin\WaterFlow.dll
+C:\Users\mpfs\Contacts\Documents\GitHub\WaterFlow\WaterFlow\WaterFlow\bin\WaterFlow.pdb
+C:\Users\mpfs\Contacts\Documents\GitHub\WaterFlow\WaterFlow\WaterFlow\obj\Release\WaterFlow.dll
+C:\Users\mpfs\Contacts\Documents\GitHub\WaterFlow\WaterFlow\WaterFlow\obj\Release\WaterFlow.pdb

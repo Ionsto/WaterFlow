@@ -61,8 +61,10 @@ var Pipe;
     var World = (function () {
         function World() {
             this.PickedUpSand = 0;
-            this.WorldSize = 100;
-            this.GridToCanvas = 5;
+            this.GridToCanvas = 4;
+            this.WorldSize = 500 / this.GridToCanvas;
+            this.StartTime = 100;
+            this.Time = 0;
             ///
             this.DeltaTime = 1;
             this.Gravity = 10;
@@ -73,7 +75,10 @@ var Pipe;
             this.SedimentDissolvingConst = 0.01;
             this.SedimentCapacityConst = 0.01;
             this.Inflow = 100;
-            this.OutFlow = 10;
+            this.OutFlow = 100;
+            this.SlumpConst = 0.1;
+            this.SlumpLimitDry = 10;
+            this.SlumpLimitWet = 1;
             ////
             this.GroundType = new Grid(this.WorldSize, this.WorldSize);
             this.WaterHeight = new Grid(this.WorldSize, this.WorldSize);
@@ -88,13 +93,14 @@ var Pipe;
             this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
             this.Canvas = document.getElementById("RenderCanvas");
+            this.Canvas.width = this.WorldSize * this.GridToCanvas;
+            this.Canvas.height = this.WorldSize * this.GridToCanvas;
             this.ctx = this.Canvas.getContext("2d");
             this.WaterHeight.MaxHeight = 100;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
             this.SiltMap.MaxHeight = -1;
             this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
             for (var i = 0; i < 4; ++i) {
-                //this.InFlowMap[i] = new Grid(this.WorldSize, this.WorldSize);
                 this.OutFlowMap[i] = new Grid(this.WorldSize, this.WorldSize);
             }
             this.WorldGen();
@@ -102,14 +108,19 @@ var Pipe;
             //this.GroundHeight.GetMean();
         }
         World.prototype.WorldGen = function () {
+            var SeedHeight = Math.random() * 10;
+            var Seed = Math.random() * 2;
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     var Slope = (2 - ((x / this.WorldSize) + (y / this.WorldSize))) * this.GroundHeight.MaxHeight / 2;
-                    this.GroundHeight.SetValueAt(x, y, Slope + (Math.random() * 5));
+                    this.GroundHeight.SetValueAt(x, y, Slope + (Math.sin((x - y * Seed) / 5) * SeedHeight) - (Math.cos(y - Seed)));
+                    if (this.GroundHeight.GetValueAt(x, y) < 0) {
+                        this.GroundHeight.SetValueAt(x, y, 0);
+                    }
                 }
             }
-            this.GroundType.SetValueAt(0, 0, 2);
-            this.GroundType.SetValueAt(this.WorldSize, this.WorldSize, 3);
+            this.GroundType.SetValueAt(5, 5, 2);
+            this.GroundType.SetValueAt(this.WorldSize - 2, this.WorldSize - 2, 3);
         };
         World.prototype.UpdateWorldFlow = function () {
             for (var x = 0; x < this.GroundType.SizeX; ++x) {
@@ -138,8 +149,9 @@ var Pipe;
                         TotalFlow += Flow;
                         this.OutFlowMap[i].SetValueAt(x, y, Flow);
                     }
+                    var WaterHeight = this.WaterHeight.GetValueAt(x, y);
                     if (TotalFlow > this.WaterHeight.GetValueAt(x, y)) {
-                        var KScale = Math.min(1, this.WaterHeight.GetValueAt(x, y) / (TotalFlow * this.DeltaTime));
+                        var KScale = Math.min(1, this.WaterHeight.GetValueAt(x, y) / (TotalFlow));
                         for (var i = 0; i < this.SearchSpace.length; ++i) {
                             this.OutFlowMap[i].SetValueAt(x, y, this.OutFlowMap[i].GetValueAt(x, y) * KScale);
                         }
@@ -155,16 +167,13 @@ var Pipe;
                     var VolumeOut = 0;
                     for (var i = 0; i < this.SearchSpace.length; ++i) {
                         var Offset = this.SearchSpace[i];
-                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.WaterHeight.SizeX || y - Offset[1] > this.WaterHeight.SizeY)) {
+                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] >= this.WaterHeight.SizeX || y - Offset[1] >= this.WaterHeight.SizeY)) {
                             VolumeIn += this.OutFlowMap[i].GetValueAt(x - Offset[0], y - Offset[1]);
                         }
                         VolumeOut += this.OutFlowMap[i].GetValueAt(x, y);
                     }
                     var VolumeNet = this.DeltaTime * (VolumeIn - VolumeOut);
                     this.WaterHeightBuffer.SetValueAt(x, y, this.WaterHeight.GetValueAt(x, y) + VolumeNet);
-                    if (this.WaterHeightBuffer.GetValueAt(x, y) < 0.01) {
-                        this.WaterHeightBuffer.SetValueAt(x, y, 0);
-                    }
                 }
             }
             this.WaterHeight = this.WaterHeightBuffer;
@@ -183,7 +192,7 @@ var Pipe;
                     if (this.WaterHeight.GetValueAt(x, y) > 0) {
                         var OffsetX = this.Sign(this.VelocityMapX.GetValueAt(x, y) * this.DeltaTime);
                         var OffsetY = this.Sign(this.VelocityMapY.GetValueAt(x, y) * this.DeltaTime);
-                        if (x - OffsetX < 0 || y - OffsetY < 0 || x - OffsetX > this.WaterHeight.SizeX || y - OffsetY > this.WaterHeight.SizeY) {
+                        if (x - OffsetX < 0 || y - OffsetY < 0 || x - OffsetX >= this.WaterHeight.SizeX || y - OffsetY >= this.WaterHeight.SizeY) {
                             //exception
                             this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
                         } else {
@@ -263,14 +272,14 @@ var Pipe;
                     var VY = 0;
                     for (var i = 0; i < this.SearchSpace.length; i += 2) {
                         var Offset = this.SearchSpace[i];
-                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.WaterHeight.SizeX || y - Offset[1] > this.WaterHeight.SizeY)) {
+                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] >= this.WaterHeight.SizeX || y - Offset[1] >= this.WaterHeight.SizeY)) {
                             VX += this.OutFlowMap[i].GetValueAt(x - Offset[0], y - Offset[1]);
                         }
                         VX -= this.OutFlowMap[i].GetValueAt(x, y);
                     }
                     for (var i = 1; i < this.SearchSpace.length; i += 2) {
                         var Offset = this.SearchSpace[i];
-                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.WaterHeight.SizeX || y - Offset[1] > this.WaterHeight.SizeY)) {
+                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] >= this.WaterHeight.SizeX || y - Offset[1] >= this.WaterHeight.SizeY)) {
                             VY += this.OutFlowMap[i].GetValueAt(x - Offset[0], y - Offset[1]);
                         }
                         VY -= this.OutFlowMap[i].GetValueAt(x, y);
@@ -280,13 +289,49 @@ var Pipe;
                 }
             }
         };
+        World.prototype.UpdateSandSlumping = function () {
+            for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
+                for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
+                    var NetVolume = 0;
+                    for (var i = 0; i < this.SearchSpace.length; ++i) {
+                        var VolumeOut = 0;
+                        var Offset = this.SearchSpace[i];
+                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
+                            var Lim = this.SlumpLimitDry;
+                            if (this.WaterHeight.GetValueAt(x - Offset[0], y - Offset[1]) > 0) {
+                                Lim = this.SlumpLimitWet;
+                            }
+                            var HeightDiff = this.GroundHeight.GetValueAt(x, y) - this.GroundHeight.GetValueAt(x - Offset[0], y - Offset[1]);
+                            if (HeightDiff > Lim) {
+                                VolumeOut = HeightDiff * this.SlumpConst * this.DeltaTime;
+                                NetVolume += VolumeOut;
+                            }
+                        }
+                        if (this.GroundHeightBuffer.GetValueAt(x - Offset[0], y - Offset[1]) + VolumeOut < 0) {
+                            VolumeOut = this.GroundHeightBuffer.GetValueAt(x - Offset[0], y - Offset[1]);
+                        }
+                        this.GroundHeightBuffer.AddValueAt(x - Offset[0], y - Offset[1], VolumeOut);
+                    }
+                    this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - NetVolume);
+                    if (this.GroundHeightBuffer.GetValueAt(x, y) <= 0) {
+                        this.GroundHeightBuffer.SetValueAt(x, y, 0);
+                    }
+                }
+            }
+            this.GroundHeight = this.GroundHeightBuffer;
+            this.GroundHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
+            this.GroundHeightBuffer.MaxHeight = this.GroundHeight.MaxHeight;
+        };
         World.prototype.Update = function () {
             for (var i = 0; i < this.UpdatePerTick; ++i) {
-                this.UpdateWorldFlow();
+                if (this.Time++ >= this.StartTime) {
+                    this.UpdateWorldFlow();
+                }
                 this.UpdateWater();
                 this.UpdateVelocity();
                 this.UpdateSilting();
                 this.UpdateSiltTransport();
+                this.UpdateSandSlumping();
             }
             //this.Inflow += 1;
         };
