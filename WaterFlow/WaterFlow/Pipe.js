@@ -66,7 +66,7 @@ var Pipe;
             this.WorldSize = 500 / this.GridToCanvas;
             this.StartTime = 100;
             this.Time = 0;
-            this.TotalOutFlow = 0;
+            this.HousesRemaining = 5;
             this.HighScore = 0;
             ///Sim values
             this.DeltaTime = 1;
@@ -76,7 +76,7 @@ var Pipe;
             this.UpdatePerTick = 2;
             this.SedimentDepositingConst = 0.1;
             this.SedimentDissolvingConst = 0.01;
-            this.SedimentCapacityConst = 0.01;
+            this.SedimentCapacityConst = 0.05;
             this.Inflow = 100;
             this.OutFlow = 100;
             this.MaxOutFlow = 100;
@@ -115,7 +115,7 @@ var Pipe;
             this.Canvas.width = this.WorldSize * this.GridToCanvas;
             this.Canvas.height = this.WorldSize * this.GridToCanvas;
             this.ctx = this.Canvas.getContext("2d");
-            this.WaterHeight.MaxHeight = 100;
+            this.WaterHeight.MaxHeight = 200;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
             this.SiltMap.MaxHeight = -1;
             this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
@@ -152,6 +152,16 @@ var Pipe;
             }
             this.GroundType.SetValueAt(5, 5, 2);
             this.GroundType.SetValueAt(XLow, YLow, 3);
+            for (var i = 0; i < this.HousesRemaining; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - 1));
+                var y = Math.round(Math.random() * (this.WorldSize - 1));
+                var dis = 20;
+                if (Math.abs(5 - x) > dis && Math.abs(5 - y) > dis) {
+                    this.GroundType.SetValueAt(x, y, 1);
+                } else {
+                    i--;
+                }
+            }
         };
         World.prototype.UpdateWorldFlow = function () {
             for (var x = 0; x < this.GroundType.SizeX; ++x) {
@@ -167,15 +177,19 @@ var Pipe;
                         this.WaterHeight.AddValueAt(x, y, IFlow);
                     }
                     if (this.GroundType.GetValueAt(x, y) == 3) {
-                        this.TotalOutFlow += this.OutFlow * this.DeltaTime;
+                        //this.TotalOutFlow += Math.max(0,this.WaterHeight.GetValueAt(x,y) - this.OutFlow * this.DeltaTime);
                         this.WaterHeight.AddValueAt(x, y, -this.OutFlow * this.DeltaTime);
+                    }
+                    if (this.GroundType.GetValueAt(x, y) == 1 && this.WaterHeight.GetValueAt(x, y) > 0) {
+                        this.GroundType.SetValueAt(x, y, 0);
+                        this.HousesRemaining -= 1;
                     }
                     if (this.WaterHeight.GetValueAt(x, y) <= 0.001) {
                         this.WaterHeight.SetValueAt(x, y, 0);
                     }
                 }
             }
-            if (this.TotalOutFlow >= this.MaxOutFlow) {
+            if (this.HousesRemaining <= 0) {
                 this.GameState = 2;
             }
         };
@@ -408,7 +422,7 @@ var Pipe;
                     if (fillB.length == 1) {
                         fillB = "0" + fillB;
                     }
-                    if (this.GroundType.GetValueAt(x, y) == 3) {
+                    if (this.GroundType.GetValueAt(x, y) == 1) {
                         fillR = "00";
                         fillG = "FF";
                         fillB = "00";
@@ -472,6 +486,9 @@ var Pipe;
                     if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) {
                         continue;
                     }
+                    if (this.GroundType.GetValueAt(xo - SizeOffset, yo - SizeOffset) == 1) {
+                        continue;
+                    }
                     Area += this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                 }
             }
@@ -495,6 +512,9 @@ var Pipe;
                         continue;
                     }
                     if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) {
+                        continue;
+                    }
+                    if (this.GroundType.GetValueAt(xo - SizeOffset, yo - SizeOffset) == 1) {
                         continue;
                     }
 
