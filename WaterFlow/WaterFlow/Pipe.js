@@ -111,24 +111,19 @@ var Pipe;
             x = (x << 13) ^ x;
             return (1.0 - ((x * (x * x * 15731 + 789221) + 1376312589) & 2147483647) / 1073741824.0);
         };
-        World.prototype.VallyGen = function (x, y, Seed, turn, hill) {
-            var val = 0;
-            for (var i = 1; i < 6; ++i) {
-                val += Math.sin((x + Seed) * i) / i;
-                val += Math.sin((y + Seed) * i) / i;
-            }
+        World.prototype.VallyGen = function (x, y, SeedX, SeedY) {
+            var val = Math.sin((x - y) / SeedX) * SeedY;
             return val;
         };
         World.prototype.SlopeGen = function (x, y) {
             return (2 - ((x / this.WorldSize) + (y / this.WorldSize))) * this.GroundHeight.MaxHeight / 2;
         };
         World.prototype.WorldGen = function () {
-            var SeedTurn = (Math.random() * 3);
-            var SeedVall = Math.random() * 13;
-            var Hill = Math.random() * 10;
+            var SeedX = (Math.random() * 10);
+            var SeedY = (Math.random() * 10);
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
-                    this.GroundHeight.SetValueAt(x, y, this.SlopeGen(x, y) + this.VallyGen(x, y, SeedVall, SeedTurn, Hill));
+                    this.GroundHeight.SetValueAt(x, y, this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -146,7 +141,7 @@ var Pipe;
                     if (this.GroundType.GetValueAt(x, y) == 3) {
                         this.WaterHeight.AddValueAt(x, y, -this.OutFlow * this.DeltaTime);
                     }
-                    if (this.WaterHeight.GetValueAt(x, y) < 0) {
+                    if (this.WaterHeight.GetValueAt(x, y) <= 0.001) {
                         this.WaterHeight.SetValueAt(x, y, 0);
                     }
                 }
