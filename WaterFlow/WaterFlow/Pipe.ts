@@ -57,21 +57,23 @@ module Pipe {
         public ctx: CanvasRenderingContext2D;
         public PickedUpSand = 0;
         public GridToCanvas = 4;
-        public GameState = 1;
+        public GameState = 0;
         public WorldSize = 500 / this.GridToCanvas;
         public StartTime = 100;
         public Time = 0;
         public HousesRemaining = 5;
         public HighScore = 0;
+        public InflowX = 10;
+        public InflowY = 10;
         ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
         public PipeLength = 1;
         public PipeCrossSection = 0.01;
         public UpdatePerTick = 2;
-        public SedimentDepositingConst = 0.1;
-        public SedimentDissolvingConst = 0.01;
-        public SedimentCapacityConst = 0.05;
+        public SedimentDepositingConst = 1;
+        public SedimentDissolvingConst = 1;
+        public SedimentCapacityConst = 0.01;
         public Inflow = 100;
         public OutFlow = 100;
         public MaxOutFlow = 100;
@@ -113,7 +115,7 @@ module Pipe {
             this.ctx = <CanvasRenderingContext2D> this.Canvas.getContext("2d");
             this.WaterHeight.MaxHeight = 200;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
-            this.SiltMap.MaxHeight = -1;
+            this.SiltMap.MaxHeight = 1000;
             this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
             for (var i = 0; i < 4; ++i) {
                 this.OutFlowMap[i] = new Grid(this.WorldSize, this.WorldSize);
@@ -146,13 +148,13 @@ module Pipe {
                     }
                 }
             }
-            this.GroundType.SetValueAt(5, 5, 2);
+            this.GroundType.SetValueAt(this.InflowX, this.InflowY, 2);
             this.GroundType.SetValueAt(XLow, YLow, 3);
             for (var i = 0; i < this.HousesRemaining; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - 1));
                 var y = Math.round(Math.random() * (this.WorldSize - 1));
                 var dis = 20;
-                if (Math.abs(5 - x) > dis && Math.abs(5 - y) > dis) {
+                if (Math.abs(this.InflowX - x) > dis && Math.abs(this.InflowY - y) > dis) {
                     this.GroundType.SetValueAt(x, y, 1);
                 }
                 else {
@@ -167,10 +169,11 @@ module Pipe {
                         var Factor = 100;
                         //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
-                        var Waves = 0.1 * this.Time;
+                        var Waves = 0.5 * this.Time;
                         var IFlow = this.DeltaTime * Waves;
                         document.getElementById("Flow").innerHTML = IFlow.toString();
                         this.WaterHeight.AddValueAt(x, y, IFlow);
+                        this.SiltMap.AddValueAt(x, y, this.SedimentCapacityConst);
                     }
                     if (this.GroundType.GetValueAt(x, y) == 3) {
                         //this.TotalOutFlow += Math.max(0,this.WaterHeight.GetValueAt(x,y) - this.OutFlow * this.DeltaTime);
@@ -196,10 +199,12 @@ module Pipe {
                     var TotalFlow = 0;
                     for (var i = 0; i < this.SearchSpace.length; ++i) {
                         var Offset = this.SearchSpace[i];
-                        var HeightDifference = (this.GroundHeight.GetValueAt(x, y) + this.WaterHeight.GetValueAt(x, y)) - (this.GroundHeight.GetValueAt(x + Offset[0], y + Offset[1]) + this.WaterHeight.GetValueAt(x + Offset[0], y + Offset[1]));
-                        var Flow = Math.max(0, this.OutFlowMap[i].GetValueAt(x, y) + (this.DeltaTime * this.PipeCrossSection * ((this.Gravity * HeightDifference) / this.PipeLength)));
-                        TotalFlow += Flow;
-                        this.OutFlowMap[i].SetValueAt(x, y,Flow);
+                        if (!(x + Offset[0] < 0 || y + Offset[1] < 0 || x + Offset[0] >= this.WaterHeight.SizeX || y + Offset[1] >= this.WaterHeight.SizeY)) {
+                            var HeightDifference = (this.GroundHeight.GetValueAt(x, y) + this.WaterHeight.GetValueAt(x, y)) - (this.GroundHeight.GetValueAt(x + Offset[0], y + Offset[1]) + this.WaterHeight.GetValueAt(x + Offset[0], y + Offset[1]));
+                            var Flow = Math.max(0, this.OutFlowMap[i].GetValueAt(x, y) + (this.DeltaTime * this.PipeCrossSection * ((this.Gravity * HeightDifference) / this.PipeLength)));
+                            TotalFlow += Flow;
+                            this.OutFlowMap[i].SetValueAt(x, y, Flow);
+                        }
                     }
                     var WaterHeight = this.WaterHeight.GetValueAt(x, y);
                     if (TotalFlow > this.WaterHeight.GetValueAt(x, y)) {
@@ -291,22 +296,23 @@ module Pipe {
                     var VX = this.VelocityMapX.GetValueAt(x, y);
                     var VY = this.VelocityMapY.GetValueAt(x, y);
                     var Speed = Math.sqrt((VX * VX) + (VY * VY));
+                    var Silt = this.SiltMap.GetValueAt(x, y);
                     var Capacity = this.SedimentCapacityConst * Speed * Math.sin(this.GetTilt(x, y));
-                    if (Capacity > this.SiltMap.GetValueAt(x, y)) {
-                        var ChangeSilt = this.SedimentDissolvingConst * (Capacity - this.SiltMap.GetValueAt(x, y));
-                        if (this.GroundHeight.GetValueAt(x, y) - ChangeSilt > 0) {
-                            this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
-                            this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) + ChangeSilt);
+                    if (Capacity > Silt) {
+                        var ChangeSilt = this.SedimentDissolvingConst * (Capacity - Silt);
+                        if (this.GroundHeight.GetValueAt(x, y) - ChangeSilt < 0) {
+                            ChangeSilt = this.GroundHeight.GetValueAt(x, y);
                         }
+                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
+                        this.SiltMapBuffer.SetValueAt(x, y, Silt + ChangeSilt);
                     }
-                    else if (Capacity < this.SiltMap.GetValueAt(x, y)) {
-                        var ChangeSilt = this.SedimentDepositingConst * (this.SiltMap.GetValueAt(x, y) - Capacity);
+                    else if (Capacity <= this.SiltMap.GetValueAt(x, y)) {
+                        var ChangeSilt = this.SedimentDepositingConst * (Silt - Capacity);
+                        if (this.SiltMap.GetValueAt(x, y) - ChangeSilt < 0) {
+                            ChangeSilt = this.SiltMap.GetValueAt(x, y);
+                        }
                         this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) + ChangeSilt);
-                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) - ChangeSilt);
-                    }
-                    else {
-                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
-                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y));
+                        this.SiltMapBuffer.SetValueAt(x, y, Silt - ChangeSilt);
                     }
                 }
             }
@@ -489,11 +495,26 @@ module Pipe {
                 }
             }
         }
+        public RenderMainMenu() {
+            this.ctx.fillStyle = "#00FFFF";
+            this.ctx.fillText("Start", this.Canvas.width / 2, this.Canvas.height / 4);
+            this.ctx.fillText("Credits", this.Canvas.width / 2, this.Canvas.height / 2);
+            this.ctx.fillText("Credits", this.Canvas.width / 2, (this.Canvas.height * 3) / 2);
+        }
+        public RenderEndScreen() {
+            this.ctx.fillStyle = "#00FFFF";
+            this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
+            this.ctx.fillText(this.Time.toString(), this.Canvas.width / 2, this.Canvas.height*2 / 3);
+        }
+        public RenderLossMenu() {
+
+        }
         public MainLoop() {
             //if (this.ToUpdate) { this.Update(); this.ToUpdate = false; } else { this.ToUpdate = true; }
             switch(this.GameState)
             {
                 case 0:
+                    this.RenderMainMenu();
                     break;
                 case 1:
                     this.PollInput();
@@ -501,6 +522,7 @@ module Pipe {
                     this.Update();
                     break;
                 case 2:
+                    this.RenderEndScreen();
                     break;
             }
             //return;

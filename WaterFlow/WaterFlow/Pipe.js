@@ -62,21 +62,23 @@ var Pipe;
         function World() {
             this.PickedUpSand = 0;
             this.GridToCanvas = 4;
-            this.GameState = 1;
+            this.GameState = 0;
             this.WorldSize = 500 / this.GridToCanvas;
             this.StartTime = 100;
             this.Time = 0;
             this.HousesRemaining = 5;
             this.HighScore = 0;
+            this.InflowX = 10;
+            this.InflowY = 10;
             ///Sim values
             this.DeltaTime = 1;
             this.Gravity = 10;
             this.PipeLength = 1;
             this.PipeCrossSection = 0.01;
             this.UpdatePerTick = 2;
-            this.SedimentDepositingConst = 0.1;
-            this.SedimentDissolvingConst = 0.01;
-            this.SedimentCapacityConst = 0.05;
+            this.SedimentDepositingConst = 1;
+            this.SedimentDissolvingConst = 1;
+            this.SedimentCapacityConst = 0.01;
             this.Inflow = 100;
             this.OutFlow = 100;
             this.MaxOutFlow = 100;
@@ -117,7 +119,7 @@ var Pipe;
             this.ctx = this.Canvas.getContext("2d");
             this.WaterHeight.MaxHeight = 200;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
-            this.SiltMap.MaxHeight = -1;
+            this.SiltMap.MaxHeight = 1000;
             this.SiltMapBuffer.MaxHeight = this.SiltMap.MaxHeight;
             for (var i = 0; i < 4; ++i) {
                 this.OutFlowMap[i] = new Grid(this.WorldSize, this.WorldSize);
@@ -150,13 +152,13 @@ var Pipe;
                     }
                 }
             }
-            this.GroundType.SetValueAt(5, 5, 2);
+            this.GroundType.SetValueAt(this.InflowX, this.InflowY, 2);
             this.GroundType.SetValueAt(XLow, YLow, 3);
             for (var i = 0; i < this.HousesRemaining; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - 1));
                 var y = Math.round(Math.random() * (this.WorldSize - 1));
                 var dis = 20;
-                if (Math.abs(5 - x) > dis && Math.abs(5 - y) > dis) {
+                if (Math.abs(this.InflowX - x) > dis && Math.abs(this.InflowY - y) > dis) {
                     this.GroundType.SetValueAt(x, y, 1);
                 } else {
                     i--;
@@ -171,10 +173,11 @@ var Pipe;
 
                         //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
-                        var Waves = 0.1 * this.Time;
+                        var Waves = 0.5 * this.Time;
                         var IFlow = this.DeltaTime * Waves;
                         document.getElementById("Flow").innerHTML = IFlow.toString();
                         this.WaterHeight.AddValueAt(x, y, IFlow);
+                        this.SiltMap.AddValueAt(x, y, this.SedimentCapacityConst);
                     }
                     if (this.GroundType.GetValueAt(x, y) == 3) {
                         //this.TotalOutFlow += Math.max(0,this.WaterHeight.GetValueAt(x,y) - this.OutFlow * this.DeltaTime);
@@ -200,10 +203,12 @@ var Pipe;
                     var TotalFlow = 0;
                     for (var i = 0; i < this.SearchSpace.length; ++i) {
                         var Offset = this.SearchSpace[i];
-                        var HeightDifference = (this.GroundHeight.GetValueAt(x, y) + this.WaterHeight.GetValueAt(x, y)) - (this.GroundHeight.GetValueAt(x + Offset[0], y + Offset[1]) + this.WaterHeight.GetValueAt(x + Offset[0], y + Offset[1]));
-                        var Flow = Math.max(0, this.OutFlowMap[i].GetValueAt(x, y) + (this.DeltaTime * this.PipeCrossSection * ((this.Gravity * HeightDifference) / this.PipeLength)));
-                        TotalFlow += Flow;
-                        this.OutFlowMap[i].SetValueAt(x, y, Flow);
+                        if (!(x + Offset[0] < 0 || y + Offset[1] < 0 || x + Offset[0] >= this.WaterHeight.SizeX || y + Offset[1] >= this.WaterHeight.SizeY)) {
+                            var HeightDifference = (this.GroundHeight.GetValueAt(x, y) + this.WaterHeight.GetValueAt(x, y)) - (this.GroundHeight.GetValueAt(x + Offset[0], y + Offset[1]) + this.WaterHeight.GetValueAt(x + Offset[0], y + Offset[1]));
+                            var Flow = Math.max(0, this.OutFlowMap[i].GetValueAt(x, y) + (this.DeltaTime * this.PipeCrossSection * ((this.Gravity * HeightDifference) / this.PipeLength)));
+                            TotalFlow += Flow;
+                            this.OutFlowMap[i].SetValueAt(x, y, Flow);
+                        }
                     }
                     var WaterHeight = this.WaterHeight.GetValueAt(x, y);
                     if (TotalFlow > this.WaterHeight.GetValueAt(x, y)) {
@@ -297,20 +302,22 @@ var Pipe;
                     var VX = this.VelocityMapX.GetValueAt(x, y);
                     var VY = this.VelocityMapY.GetValueAt(x, y);
                     var Speed = Math.sqrt((VX * VX) + (VY * VY));
+                    var Silt = this.SiltMap.GetValueAt(x, y);
                     var Capacity = this.SedimentCapacityConst * Speed * Math.sin(this.GetTilt(x, y));
-                    if (Capacity > this.SiltMap.GetValueAt(x, y)) {
-                        var ChangeSilt = this.SedimentDissolvingConst * (Capacity - this.SiltMap.GetValueAt(x, y));
-                        if (this.GroundHeight.GetValueAt(x, y) - ChangeSilt > 0) {
-                            this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
-                            this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) + ChangeSilt);
+                    if (Capacity > Silt) {
+                        var ChangeSilt = this.SedimentDissolvingConst * (Capacity - Silt);
+                        if (this.GroundHeight.GetValueAt(x, y) - ChangeSilt < 0) {
+                            ChangeSilt = this.GroundHeight.GetValueAt(x, y);
                         }
-                    } else if (Capacity < this.SiltMap.GetValueAt(x, y)) {
-                        var ChangeSilt = this.SedimentDepositingConst * (this.SiltMap.GetValueAt(x, y) - Capacity);
+                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) - ChangeSilt);
+                        this.SiltMapBuffer.SetValueAt(x, y, Silt + ChangeSilt);
+                    } else if (Capacity <= this.SiltMap.GetValueAt(x, y)) {
+                        var ChangeSilt = this.SedimentDepositingConst * (Silt - Capacity);
+                        if (this.SiltMap.GetValueAt(x, y) - ChangeSilt < 0) {
+                            ChangeSilt = this.SiltMap.GetValueAt(x, y);
+                        }
                         this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y) + ChangeSilt);
-                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y) - ChangeSilt);
-                    } else {
-                        this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
-                        this.GroundHeightBuffer.SetValueAt(x, y, this.GroundHeight.GetValueAt(x, y));
+                        this.SiltMapBuffer.SetValueAt(x, y, Silt - ChangeSilt);
                     }
                 }
             }
@@ -534,9 +541,23 @@ var Pipe;
                 }
             }
         };
+        World.prototype.RenderMainMenu = function () {
+            this.ctx.fillStyle = "#00FFFF";
+            this.ctx.fillText("Start", this.Canvas.width / 2, this.Canvas.height / 4);
+            this.ctx.fillText("Credits", this.Canvas.width / 2, this.Canvas.height / 2);
+            this.ctx.fillText("Credits", this.Canvas.width / 2, (this.Canvas.height * 3) / 2);
+        };
+        World.prototype.RenderEndScreen = function () {
+            this.ctx.fillStyle = "#00FFFF";
+            this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
+            this.ctx.fillText(this.Time.toString(), this.Canvas.width / 2, this.Canvas.height * 2 / 3);
+        };
+        World.prototype.RenderLossMenu = function () {
+        };
         World.prototype.MainLoop = function () {
             switch (this.GameState) {
                 case 0:
+                    this.RenderMainMenu();
                     break;
                 case 1:
                     this.PollInput();
@@ -544,6 +565,7 @@ var Pipe;
                     this.Update();
                     break;
                 case 2:
+                    this.RenderEndScreen();
                     break;
             }
             //return;
