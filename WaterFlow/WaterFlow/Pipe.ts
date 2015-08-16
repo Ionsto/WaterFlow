@@ -52,14 +52,18 @@ module Pipe {
     };
     console.log("Grid defined");
     class World {
+        //game values
         public Canvas: HTMLCanvasElement;
         public ctx: CanvasRenderingContext2D;
         public PickedUpSand = 0;
         public GridToCanvas = 4;
+        public GameState = 1;
         public WorldSize = 500 / this.GridToCanvas;
         public StartTime = 100;
         public Time = 0;
-        ///
+        public TotalOutFlow = 0;
+        public HighScore = 0;
+        ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
         public PipeLength = 1;
@@ -70,10 +74,11 @@ module Pipe {
         public SedimentCapacityConst = 0.01;
         public Inflow = 100;
         public OutFlow = 100;
+        public MaxOutFlow = 100;
         public SlumpConst = 0.1;
         public SlumpLimitDry = 10;
-        public SlumpLimitWet = 1;
-        ////
+        public SlumpLimitWet = 0;
+        ////Sim buffers
         public GroundType = new Grid(this.WorldSize, this.WorldSize);//0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
         public WaterHeight = new Grid(this.WorldSize, this.WorldSize);
         public WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
@@ -87,6 +92,21 @@ module Pipe {
         public SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
         SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
         constructor() {
+            this.Init();
+        }
+        public Init() {
+            this.PickedUpSand = 0;
+            this.Time = 0;
+            this.GroundType = new Grid(this.WorldSize, this.WorldSize);//0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
+            this.WaterHeight = new Grid(this.WorldSize, this.WorldSize);
+            this.WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
+            this.GroundHeight = new Grid(this.WorldSize, this.WorldSize, 1);
+            this.GroundHeightBuffer = new Grid(this.WorldSize, this.WorldSize, 1);
+            this.OutFlowMap = [];
+            this.VelocityMapX = new Grid(this.WorldSize, this.WorldSize);
+            this.VelocityMapY = new Grid(this.WorldSize, this.WorldSize);
+            this.SiltMap = new Grid(this.WorldSize, this.WorldSize);
+            this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.Canvas = <HTMLCanvasElement> document.getElementById("RenderCanvas");
             this.Canvas.width = this.WorldSize * this.GridToCanvas;
             this.Canvas.height = this.WorldSize * this.GridToCanvas;
@@ -99,15 +119,9 @@ module Pipe {
                 this.OutFlowMap[i] = new Grid(this.WorldSize, this.WorldSize);
             }
             this.WorldGen();
-            //this.WaterHeight.SetValueAt(0, 0, 1000);
-            //this.GroundHeight.GetMean();
-        }  
-        IntNoise(x){
-            x = (x << 13) ^ x;
-            return (1.0 - ((x * (x * x * 15731 + 789221) + 1376312589) & 2147483647) / 1073741824.0);    
         }
         public VallyGen(x, y, SeedX, SeedY) {
-            var val = Math.sin((x - y)/SeedX) * SeedY;
+            var val = Math.sin((x - y) / SeedX) * SeedY;
             return val;
         }
         public SlopeGen(x, y) {
@@ -116,16 +130,24 @@ module Pipe {
         public WorldGen() {
             var SeedX = (Math.random() * 10);
             var SeedY = (Math.random() * 10);
+            var XLow = 0;
+            var YLow = 0;
+            var Low = -1;
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     this.GroundHeight.SetValueAt(x, y, this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX,SeedY));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
+                    if (this.GroundHeight.GetValueAt(x, y) < Low || Low == -1) {
+                        XLow = x;
+                        YLow = y;
+                        Low = this.GroundHeight.GetValueAt(x, y);
+                    }
                 }
             }
             this.GroundType.SetValueAt(5, 5, 2);
-            this.GroundType.SetValueAt(this.WorldSize-2, this.WorldSize-2, 3);
+            this.GroundType.SetValueAt(XLow, YLow, 3);
         }
         public UpdateWorldFlow() {
             for (var x = 0; x < this.GroundType.SizeX; ++x) {
@@ -140,12 +162,16 @@ module Pipe {
                         this.WaterHeight.AddValueAt(x, y, IFlow);
                     }
                     if (this.GroundType.GetValueAt(x, y) == 3) {
+                        this.TotalOutFlow += this.OutFlow * this.DeltaTime;
                         this.WaterHeight.AddValueAt(x, y, -this.OutFlow * this.DeltaTime);
                     }
                     if (this.WaterHeight.GetValueAt(x, y) <= 0.001) {
                         this.WaterHeight.SetValueAt(x, y, 0);
                     }
                 }
+            }
+            if (this.TotalOutFlow >= this.MaxOutFlow) {
+                this.GameState = 2;
             }
         }
         public UpdateOutFlow() {
@@ -365,6 +391,11 @@ module Pipe {
                     if (fillG.length == 1) { fillG = "0" + fillG; }
                     var fillB = Math.round(B).toString(16);
                     if (fillB.length == 1) { fillB = "0" + fillB; }
+                    if (this.GroundType.GetValueAt(x, y) == 3) {
+                        fillR = "00";
+                        fillG = "FF";
+                        fillB = "00";
+                    }
                     this.ctx.fillStyle = "#" + fillR + fillG + fillB;
                     this.ctx.fillRect(x * this.GridToCanvas, y * this.GridToCanvas, this.GridToCanvas, this.GridToCanvas);
                 }
@@ -443,9 +474,18 @@ module Pipe {
         }
         public MainLoop() {
             //if (this.ToUpdate) { this.Update(); this.ToUpdate = false; } else { this.ToUpdate = true; }
-            this.PollInput();
-            this.Render();
-            this.Update();
+            switch(this.GameState)
+            {
+                case 0:
+                    break;
+                case 1:
+                    this.PollInput();
+                    this.Render();
+                    this.Update();
+                    break;
+                case 2:
+                    break;
+            }
             //return;
         }
     };
