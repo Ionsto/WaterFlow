@@ -136,7 +136,14 @@ var Pipe;
             for (var x = 0; x < this.GroundType.SizeX; ++x) {
                 for (var y = 0; y < this.GroundType.SizeY; ++y) {
                     if (this.GroundType.GetValueAt(x, y) == 2) {
-                        this.WaterHeight.AddValueAt(x, y, this.Inflow * this.DeltaTime);
+                        var Factor = 100;
+
+                        //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
+                        //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
+                        var Waves = 0.01 * this.Time;
+                        var IFlow = this.DeltaTime * Waves;
+                        document.getElementById("Flow").innerHTML = IFlow.toString();
+                        this.WaterHeight.AddValueAt(x, y, IFlow);
                     }
                     if (this.GroundType.GetValueAt(x, y) == 3) {
                         this.WaterHeight.AddValueAt(x, y, -this.OutFlow * this.DeltaTime);
@@ -306,7 +313,7 @@ var Pipe;
                     for (var i = 0; i < this.SearchSpace.length; ++i) {
                         var VolumeOut = 0;
                         var Offset = this.SearchSpace[i];
-                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] > this.GroundHeight.SizeX || y - Offset[1] > this.GroundHeight.SizeY)) {
+                        if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] >= this.GroundHeight.SizeX || y - Offset[1] >= this.GroundHeight.SizeY)) {
                             var Lim = this.SlumpLimitDry;
                             if (this.WaterHeight.GetValueAt(x - Offset[0], y - Offset[1]) > 0) {
                                 Lim = this.SlumpLimitWet;
