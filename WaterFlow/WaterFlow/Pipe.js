@@ -243,9 +243,14 @@ var Pipe;
             }
             this.WorldGen();
         };
+        World.prototype.ResetGame = function () {
+            this.GameState = 1;
+            this.Init();
+        };
         World.prototype.InitGuis = function () {
             this.InitMainMenu();
             this.InitHUD();
+            this.InitLoseScreen();
         };
         World.prototype.InitMainMenu = function () {
             this.MainMenu = new Gui(this.ctx, this.PlaySize, this.PlaySize);
@@ -256,10 +261,17 @@ var Pipe;
         };
         World.prototype.InitHUD = function () {
             this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
-            var Restart = new Button(this.PlaySize, 0, 100, 50, "Start", 20);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 20);
             var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits", 20);
             this.Hud.Elements.push(Restart);
             this.Hud.Elements.push(Credits);
+        };
+        World.prototype.InitLoseScreen = function () {
+            this.LoseScreen = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 20);
+            var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits", 20);
+            this.LoseScreen.Elements.push(Restart);
+            this.LoseScreen.Elements.push(Credits);
         };
 
         World.prototype.VallyGen = function (x, y, SeedX, SeedY) {
@@ -700,11 +712,15 @@ var Pipe;
                     this.Hud.Update(MouseX, MouseY, MouseButton);
                     this.Hud.Render();
                     if (this.Hud.Elements[0].State == 2) {
-                        this.Init();
+                        this.ResetGame();
                     }
                     break;
                 case 2:
-                    this.RenderEndScreen();
+                    this.LoseScreen.Update(MouseX, MouseY, MouseButton);
+                    this.LoseScreen.Render();
+                    if (this.LoseScreen.Elements[0].State == 2) {
+                        this.ResetGame();
+                    }
                     break;
             }
             //return;
