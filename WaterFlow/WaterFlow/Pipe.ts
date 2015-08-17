@@ -525,7 +525,7 @@ module Pipe {
             //this.Inflow += 1;
         }
         Render() {
-            //this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+            this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     //FFC877 Sand brightest.
@@ -645,6 +645,7 @@ module Pipe {
             switch(this.GameState)
             {
                 case 0:
+                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     this.MainMenu.Render();
                     if ((<Button>this.MainMenu.Elements[0]).State == 2) {
@@ -662,6 +663,7 @@ module Pipe {
                     }
                     break;
                 case 2:
+                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
                     this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     this.LoseScreen.Render();
                     if ((<Button>this.LoseScreen.Elements[0]).State == 2) {
@@ -695,13 +697,6 @@ module Pipe {
         return true;
     };
     var UpdateSpeed = 10;
-    document.getElementById("ResetButton").onclick = function (event: MouseEvent) {
-        //alert("dsada");
-        //clearInterval(Interval);
-        //world = new World();
-        //Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
-        return true;
-    };
     //world.MainLoop();
     Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
 }

@@ -220,7 +220,7 @@ var Pipe;
         World.prototype.Init = function () {
             this.PickedUpSand = 0;
             this.Time = 0;
-            this.GroundType = new Grid(this.WorldSize, this.WorldSize); //0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
+            this.GroundType = new Grid(this.WorldSize, this.WorldSize);
             this.WaterHeight = new Grid(this.WorldSize, this.WorldSize);
             this.WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.GroundHeight = new Grid(this.WorldSize, this.WorldSize, 1);
@@ -547,6 +547,7 @@ var Pipe;
             //this.Inflow += 1;
         };
         World.prototype.Render = function () {
+            this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     //FFC877 Sand brightest.
@@ -562,7 +563,7 @@ var Pipe;
                         R /= 2;
                         G += 212 * BrightnessDecWater;
                         G /= Math.max(2, Math.ceil(G / 255));
-                        B += 255; // * BrightnessDecWater;
+                        B += 255;
                         B /= Math.max(2, Math.ceil(G / 255));
                     }
                     var fillR = Math.round(R).toString(16);
@@ -592,8 +593,6 @@ var Pipe;
             var DeltaHeight = 0;
             var HeightPerSecond = 10;
 
-            //if (Button == 0) { DeltaHeight = HeightPerSecond; }
-            //if (Button == 2) { DeltaHeight = HeightPerSecond; }
             if (MouseButton == 1) {
                 document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
                 //console.log(this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY));
@@ -677,7 +676,6 @@ var Pipe;
                     var Distribution = this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                     Distribution = (Direction * Distribution * Factor) / (Area);
 
-                    //Distribution *= Direrction;
                     if (this.GroundHeight.GetValueAt(X, Y) + Distribution > this.GroundHeight.MaxHeight) {
                         Distribution = this.GroundHeight.MaxHeight - this.GroundHeight.GetValueAt(X, Y);
                     }
@@ -699,9 +697,10 @@ var Pipe;
         World.prototype.MainLoop = function () {
             switch (this.GameState) {
                 case 0:
+                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     this.MainMenu.Render();
-                    if (this.MainMenu.Elements[0].State == 2) {
+                    if ((this.MainMenu.Elements[0]).State == 2) {
                         this.GameState = 1;
                     }
                     break;
@@ -711,14 +710,15 @@ var Pipe;
                     this.Update();
                     this.Hud.Update(MouseX, MouseY, MouseButton);
                     this.Hud.Render();
-                    if (this.Hud.Elements[0].State == 2) {
+                    if ((this.Hud.Elements[0]).State == 2) {
                         this.ResetGame();
                     }
                     break;
                 case 2:
+                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
                     this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     this.LoseScreen.Render();
-                    if (this.LoseScreen.Elements[0].State == 2) {
+                    if ((this.LoseScreen.Elements[0]).State == 2) {
                         this.ResetGame();
                     }
                     break;
