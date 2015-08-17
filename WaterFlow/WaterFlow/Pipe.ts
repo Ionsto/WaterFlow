@@ -60,44 +60,63 @@ module Pipe {
         public Y = 0;
         public SizeX = 0;
         public SizeY = 0;
-        public Text = "";
+        public Text: Lable;
         public State = 0;
-        constructor(x, y, sx, sy, txt) {
+        constructor(x, y, sx, sy, txt,fsize= 30) {
             super();
             this.X = x;
             this.Y = y;
             this.SizeX = sx;
             this.SizeY = sy;
-            this.Text = txt;
+            this.Text = new Lable(x + sx/2, y + sy/2, txt,fsize);
         }
         public Render(gui: Gui) {
             if (this.State == 0) {
                 gui.ctx.fillStyle = "#FF00FF";
             } else if (this.State == 1) {
-                gui.ctx.fillStyle = "#FFFFFF";
+                gui.ctx.fillStyle = "#CC00FF";
             } else if (this.State == 2) {
-                gui.ctx.fillStyle = "#FF00FF";
+                gui.ctx.fillStyle = "#FF55FF";
             }
             gui.ctx.fillRect(this.X, this.Y, this.SizeX, this.SizeY);
+            gui.ctx.fillStyle = "#000000";
+            this.Text.Render(gui);
         }
         public Update(gui: Gui) {
             if (gui.Button == 0) {
                 if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX) {
                     if (gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
                         if (this.State == 0) {
-                            this.State == 1;
+                            this.State = 1;
                         }
                     }
                 }
             }
             else {
                 if (this.State == 1) {
-                    this.State == 2;
+                    this.State = 2;
                 }
                 else {
                     this.State = 0;
                 }
             }
+        }
+    }
+    class Lable extends Element {
+        public X = 0;
+        public Y = 0;
+        public Text = "";
+        public FontSize = 30;
+        constructor(x, y, txt,size=30) {
+            super();
+            this.X = x;
+            this.Y = y;
+            this.Text = txt;
+            this.FontSize = size;
+        }
+        public Render(gui: Gui) {
+            gui.ctx.font = this.FontSize.toString() + "px Arial";
+            gui.ctx.fillText(this.Text, this.X - ((this.Text.length - 1) * (this.FontSize / 4)), this.Y + (this.FontSize * 0.5 / 2));
         }
     }
     class Gui {
@@ -140,7 +159,8 @@ module Pipe {
         public PickedUpSand = 0;
         public GridToCanvas = 4;
         public GameState = 0;
-        public WorldSize = 500 / this.GridToCanvas;
+        public PlaySize = 500;
+        public WorldSize = this.PlaySize / this.GridToCanvas;
         public StartTime = 100;
         public Time = 0;
         public HousesRemaining = 5;
@@ -196,8 +216,8 @@ module Pipe {
             this.SiltMap = new Grid(this.WorldSize, this.WorldSize);
             this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.Canvas = <HTMLCanvasElement> document.getElementById("RenderCanvas");
-            this.Canvas.width = this.WorldSize * this.GridToCanvas;
-            this.Canvas.height = this.WorldSize * this.GridToCanvas;
+            this.Canvas.width = (this.PlaySize) + 100;
+            this.Canvas.height = (this.PlaySize);
             this.ctx = <CanvasRenderingContext2D> this.Canvas.getContext("2d");
             this.WaterHeight.MaxHeight = 200;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
@@ -210,11 +230,21 @@ module Pipe {
         }
         InitGuis() {
             this.InitMainMenu();
+            this.InitHUD();
         }
         InitMainMenu() {
-            this.MainMenu = new Gui(this.ctx, this.WorldSize, this.WorldSize);
-            var Start = new Button(0, 0, 100, 100, "YOLO");
+            this.MainMenu = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            var Start = new Button(this.PlaySize / 2, 100, 100, 50, "Start");
+            var Credits = new Button(this.PlaySize / 2, 200, 100, 50, "Credits");
             this.MainMenu.Elements.push(Start);
+            this.MainMenu.Elements.push(Credits);
+        }
+        InitHUD() {
+            this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Start",20);
+            var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits",20);
+            this.Hud.Elements.push(Restart);
+            this.Hud.Elements.push(Credits);
         }
 
         public VallyGen(x, y, SeedX, SeedY) {
@@ -592,7 +622,7 @@ module Pipe {
         }
         public RenderEndScreen() {
             this.ctx.fillStyle = "#00FFFF";
-            this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
+            this.ctx.fillText("Rekt", this.WorldSize / 2, this.Canvas.height / 3);
             this.ctx.fillText(this.Time.toString(), this.Canvas.width / 2, this.Canvas.height*2 / 3);
         }
         public RenderLossMenu() {
@@ -605,11 +635,19 @@ module Pipe {
                 case 0:
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     this.MainMenu.Render();
+                    if ((<Button>this.MainMenu.Elements[0]).State == 2) {
+                        this.GameState = 1;
+                    }
                     break;
                 case 1:
                     this.PollInput();
                     this.Render();
                     this.Update();
+                    this.Hud.Update(MouseX, MouseY, MouseButton);
+                    this.Hud.Render();
+                    if ((<Button>this.Hud.Elements[0]).State == 2) {
+                        this.Init();
+                    }
                     break;
                 case 2:
                     this.RenderEndScreen();
@@ -643,9 +681,9 @@ module Pipe {
     var UpdateSpeed = 10;
     document.getElementById("ResetButton").onclick = function (event: MouseEvent) {
         //alert("dsada");
-        clearInterval(Interval);
-        world = new World();
-        Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
+        //clearInterval(Interval);
+        //world = new World();
+        //Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
         return true;
     };
     //world.MainLoop();

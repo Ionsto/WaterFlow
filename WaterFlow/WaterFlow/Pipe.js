@@ -75,48 +75,70 @@ var Pipe;
     })();
     var Button = (function (_super) {
         __extends(Button, _super);
-        function Button(x, y, sx, sy, txt) {
+        function Button(x, y, sx, sy, txt, fsize) {
+            if (typeof fsize === "undefined") { fsize = 30; }
             _super.call(this);
             this.X = 0;
             this.Y = 0;
             this.SizeX = 0;
             this.SizeY = 0;
-            this.Text = "";
             this.State = 0;
             this.X = x;
             this.Y = y;
             this.SizeX = sx;
             this.SizeY = sy;
-            this.Text = txt;
+            this.Text = new Lable(x + sx / 2, y + sy / 2, txt, fsize);
         }
         Button.prototype.Render = function (gui) {
             if (this.State == 0) {
                 gui.ctx.fillStyle = "#FF00FF";
             } else if (this.State == 1) {
-                gui.ctx.fillStyle = "#FFFFFF";
+                gui.ctx.fillStyle = "#CC00FF";
             } else if (this.State == 2) {
-                gui.ctx.fillStyle = "#FF00FF";
+                gui.ctx.fillStyle = "#FF55FF";
             }
             gui.ctx.fillRect(this.X, this.Y, this.SizeX, this.SizeY);
+            gui.ctx.fillStyle = "#000000";
+            this.Text.Render(gui);
         };
         Button.prototype.Update = function (gui) {
             if (gui.Button == 0) {
                 if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX) {
                     if (gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
                         if (this.State == 0) {
-                            this.State == 1;
+                            this.State = 1;
                         }
                     }
                 }
             } else {
                 if (this.State == 1) {
-                    this.State == 2;
+                    this.State = 2;
                 } else {
                     this.State = 0;
                 }
             }
         };
         return Button;
+    })(Element);
+    var Lable = (function (_super) {
+        __extends(Lable, _super);
+        function Lable(x, y, txt, size) {
+            if (typeof size === "undefined") { size = 30; }
+            _super.call(this);
+            this.X = 0;
+            this.Y = 0;
+            this.Text = "";
+            this.FontSize = 30;
+            this.X = x;
+            this.Y = y;
+            this.Text = txt;
+            this.FontSize = size;
+        }
+        Lable.prototype.Render = function (gui) {
+            gui.ctx.font = this.FontSize.toString() + "px Arial";
+            gui.ctx.fillText(this.Text, this.X - ((this.Text.length - 1) * (this.FontSize / 4)), this.Y + (this.FontSize * 0.5 / 2));
+        };
+        return Lable;
     })(Element);
     var Gui = (function () {
         function Gui(ctx, width, height) {
@@ -156,7 +178,8 @@ var Pipe;
             this.PickedUpSand = 0;
             this.GridToCanvas = 4;
             this.GameState = 0;
-            this.WorldSize = 500 / this.GridToCanvas;
+            this.PlaySize = 500;
+            this.WorldSize = this.PlaySize / this.GridToCanvas;
             this.StartTime = 100;
             this.Time = 0;
             this.HousesRemaining = 5;
@@ -208,8 +231,8 @@ var Pipe;
             this.SiltMap = new Grid(this.WorldSize, this.WorldSize);
             this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.Canvas = document.getElementById("RenderCanvas");
-            this.Canvas.width = this.WorldSize * this.GridToCanvas;
-            this.Canvas.height = this.WorldSize * this.GridToCanvas;
+            this.Canvas.width = (this.PlaySize) + 100;
+            this.Canvas.height = (this.PlaySize);
             this.ctx = this.Canvas.getContext("2d");
             this.WaterHeight.MaxHeight = 200;
             this.WaterHeightBuffer.MaxHeight = this.WaterHeight.MaxHeight;
@@ -222,11 +245,21 @@ var Pipe;
         };
         World.prototype.InitGuis = function () {
             this.InitMainMenu();
+            this.InitHUD();
         };
         World.prototype.InitMainMenu = function () {
-            this.MainMenu = new Gui(this.ctx, this.WorldSize, this.WorldSize);
-            var Start = new Button(0, 0, 100, 100, "YOLO");
+            this.MainMenu = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            var Start = new Button(this.PlaySize / 2, 100, 100, 50, "Start");
+            var Credits = new Button(this.PlaySize / 2, 200, 100, 50, "Credits");
             this.MainMenu.Elements.push(Start);
+            this.MainMenu.Elements.push(Credits);
+        };
+        World.prototype.InitHUD = function () {
+            this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Start", 20);
+            var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits", 20);
+            this.Hud.Elements.push(Restart);
+            this.Hud.Elements.push(Credits);
         };
 
         World.prototype.VallyGen = function (x, y, SeedX, SeedY) {
@@ -646,7 +679,7 @@ var Pipe;
         };
         World.prototype.RenderEndScreen = function () {
             this.ctx.fillStyle = "#00FFFF";
-            this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
+            this.ctx.fillText("Rekt", this.WorldSize / 2, this.Canvas.height / 3);
             this.ctx.fillText(this.Time.toString(), this.Canvas.width / 2, this.Canvas.height * 2 / 3);
         };
         World.prototype.RenderLossMenu = function () {
@@ -656,11 +689,19 @@ var Pipe;
                 case 0:
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     this.MainMenu.Render();
+                    if (this.MainMenu.Elements[0].State == 2) {
+                        this.GameState = 1;
+                    }
                     break;
                 case 1:
                     this.PollInput();
                     this.Render();
                     this.Update();
+                    this.Hud.Update(MouseX, MouseY, MouseButton);
+                    this.Hud.Render();
+                    if (this.Hud.Elements[0].State == 2) {
+                        this.Init();
+                    }
                     break;
                 case 2:
                     this.RenderEndScreen();
@@ -696,11 +737,9 @@ var Pipe;
     var UpdateSpeed = 10;
     document.getElementById("ResetButton").onclick = function (event) {
         //alert("dsada");
-        clearInterval(Interval);
-        world = new World();
-        Interval = setInterval(function () {
-            world.MainLoop();
-        }, UpdateSpeed);
+        //clearInterval(Interval);
+        //world = new World();
+        //Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
         return true;
     };
 
