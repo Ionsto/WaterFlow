@@ -1,3 +1,9 @@
+var __extends = this.__extends || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
 var Pipe;
 (function (Pipe) {
     var Grid = (function () {
@@ -57,6 +63,93 @@ var Pipe;
         return Grid;
     })();
     ;
+    var Element = (function () {
+        function Element() {
+            this.Active = true;
+        }
+        Element.prototype.Update = function (gui) {
+        };
+        Element.prototype.Render = function (gui) {
+        };
+        return Element;
+    })();
+    var Button = (function (_super) {
+        __extends(Button, _super);
+        function Button(x, y, sx, sy, txt) {
+            _super.call(this);
+            this.X = 0;
+            this.Y = 0;
+            this.SizeX = 0;
+            this.SizeY = 0;
+            this.Text = "";
+            this.State = 0;
+            this.X = x;
+            this.Y = y;
+            this.SizeX = sx;
+            this.SizeY = sy;
+            this.Text = txt;
+        }
+        Button.prototype.Render = function (gui) {
+            if (this.State == 0) {
+                gui.ctx.fillStyle = "#FF00FF";
+            } else if (this.State == 1) {
+                gui.ctx.fillStyle = "#FFFFFF";
+            } else if (this.State == 2) {
+                gui.ctx.fillStyle = "#FF00FF";
+            }
+            gui.ctx.fillRect(this.X, this.Y, this.SizeX, this.SizeY);
+        };
+        Button.prototype.Update = function (gui) {
+            if (gui.Button == 0) {
+                if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX) {
+                    if (gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
+                        if (this.State == 0) {
+                            this.State == 1;
+                        }
+                    }
+                }
+            } else {
+                if (this.State == 1) {
+                    this.State == 2;
+                } else {
+                    this.State = 0;
+                }
+            }
+        };
+        return Button;
+    })(Element);
+    var Gui = (function () {
+        function Gui(ctx, width, height) {
+            this.MouseX = 0;
+            this.MouseY = 0;
+            this.Button = -1;
+            this.Width = 0;
+            this.Height = 0;
+            this.Active = false;
+            this.Elements = [];
+            this.ctx = ctx;
+            this.Width = width;
+            this.Height = height;
+        }
+        Gui.prototype.Update = function (mx, my, b) {
+            this.MouseX = mx;
+            this.MouseY = my;
+            this.Button = b;
+            for (var i = 0; i < this.Elements.length; ++i) {
+                if (this.Elements[i].Active) {
+                    this.Elements[i].Update(this);
+                }
+            }
+        };
+        Gui.prototype.Render = function () {
+            for (var i = 0; i < this.Elements.length; ++i) {
+                if (this.Elements[i].Active) {
+                    this.Elements[i].Render(this);
+                }
+            }
+        };
+        return Gui;
+    })();
     console.log("Grid defined");
     var World = (function () {
         function World() {
@@ -99,6 +192,7 @@ var Pipe;
             this.SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
             this.SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
             this.Init();
+            this.InitGuis();
         }
         World.prototype.Init = function () {
             this.PickedUpSand = 0;
@@ -126,6 +220,15 @@ var Pipe;
             }
             this.WorldGen();
         };
+        World.prototype.InitGuis = function () {
+            this.InitMainMenu();
+        };
+        World.prototype.InitMainMenu = function () {
+            this.MainMenu = new Gui(this.ctx, this.WorldSize, this.WorldSize);
+            var Start = new Button(0, 0, 100, 100, "YOLO");
+            this.MainMenu.Elements.push(Start);
+        };
+
         World.prototype.VallyGen = function (x, y, SeedX, SeedY) {
             var val = Math.sin((x - y) / SeedX) * SeedY;
             return val;
@@ -446,15 +549,15 @@ var Pipe;
 
             //if (Button == 0) { DeltaHeight = HeightPerSecond; }
             //if (Button == 2) { DeltaHeight = HeightPerSecond; }
-            if (Button == 1) {
+            if (MouseButton == 1) {
                 document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
                 //console.log(this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY));
             }
             var Direction = 0;
-            if (Button == 0) {
+            if (MouseButton == 0) {
                 Direction = 1;
             }
-            if (Button == 2) {
+            if (MouseButton == 2) {
                 Direction = -1;
             }
             if (Direction != 0) {
@@ -541,12 +644,6 @@ var Pipe;
                 }
             }
         };
-        World.prototype.RenderMainMenu = function () {
-            this.ctx.fillStyle = "#00FFFF";
-            this.ctx.fillText("Start", this.Canvas.width / 2, this.Canvas.height / 4);
-            this.ctx.fillText("Credits", this.Canvas.width / 2, this.Canvas.height / 2);
-            this.ctx.fillText("Credits", this.Canvas.width / 2, (this.Canvas.height * 3) / 2);
-        };
         World.prototype.RenderEndScreen = function () {
             this.ctx.fillStyle = "#00FFFF";
             this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
@@ -557,7 +654,8 @@ var Pipe;
         World.prototype.MainLoop = function () {
             switch (this.GameState) {
                 case 0:
-                    this.RenderMainMenu();
+                    this.MainMenu.Update(MouseX, MouseY, MouseButton);
+                    this.MainMenu.Render();
                     break;
                 case 1:
                     this.PollInput();
@@ -573,22 +671,26 @@ var Pipe;
         return World;
     })();
     ;
+    var MouseX = 0;
+    var MouseY = 0;
     var MouseChunkX = 0;
     var MouseChunkY = 0;
-    var Button = -1;
+    var MouseButton = -1;
     console.log("world defined");
     var world = new World();
     var Interval = 0;
     world.Canvas.onmousemove = function (event) {
+        MouseX = event.pageX - world.Canvas.offsetLeft;
+        MouseY = event.pageY - world.Canvas.offsetTop;
         MouseChunkX = Math.floor((event.pageX - world.Canvas.offsetLeft) / world.GridToCanvas);
         MouseChunkY = Math.floor((event.pageY - world.Canvas.offsetTop) / world.GridToCanvas);
     };
     world.Canvas.onmousedown = function (event) {
-        Button = event.button;
+        MouseButton = event.button;
         return true;
     };
     world.Canvas.onmouseup = function (event) {
-        Button = -1;
+        MouseButton = -1;
         return true;
     };
     var UpdateSpeed = 10;

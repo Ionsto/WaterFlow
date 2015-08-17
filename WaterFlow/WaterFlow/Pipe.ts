@@ -50,6 +50,88 @@ module Pipe {
             return avr;
         }
     };
+    class Element {
+        public Active = true;
+        public Update(gui: Gui) { }
+        public Render(gui: Gui) { }
+    }
+    class Button extends Element {
+        public X = 0;
+        public Y = 0;
+        public SizeX = 0;
+        public SizeY = 0;
+        public Text = "";
+        public State = 0;
+        constructor(x, y, sx, sy, txt) {
+            super();
+            this.X = x;
+            this.Y = y;
+            this.SizeX = sx;
+            this.SizeY = sy;
+            this.Text = txt;
+        }
+        public Render(gui: Gui) {
+            if (this.State == 0) {
+                gui.ctx.fillStyle = "#FF00FF";
+            } else if (this.State == 1) {
+                gui.ctx.fillStyle = "#FFFFFF";
+            } else if (this.State == 2) {
+                gui.ctx.fillStyle = "#FF00FF";
+            }
+            gui.ctx.fillRect(this.X, this.Y, this.SizeX, this.SizeY);
+        }
+        public Update(gui: Gui) {
+            if (gui.Button == 0) {
+                if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX) {
+                    if (gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
+                        if (this.State == 0) {
+                            this.State == 1;
+                        }
+                    }
+                }
+            }
+            else {
+                if (this.State == 1) {
+                    this.State == 2;
+                }
+                else {
+                    this.State = 0;
+                }
+            }
+        }
+    }
+    class Gui {
+        public MouseX = 0;
+        public MouseY = 0;
+        public Button = -1;
+        public Width = 0;
+        public Height = 0;
+        public Active = false;
+        public Elements: Array<Element> = [];
+        public ctx: CanvasRenderingContext2D;
+        constructor(ctx, width, height) {
+            this.ctx = ctx;
+            this.Width = width;
+            this.Height = height;
+        }
+        Update(mx, my, b) {
+            this.MouseX = mx;
+            this.MouseY = my;
+            this.Button = b;
+            for (var i = 0; i < this.Elements.length; ++i) {
+                if (this.Elements[i].Active) {
+                    this.Elements[i].Update(this);
+                }
+            }
+        }
+        Render() {
+            for (var i = 0; i < this.Elements.length; ++i) {
+                if (this.Elements[i].Active) {
+                    this.Elements[i].Render(this);
+                }
+            }
+        }
+    }
     console.log("Grid defined");
     class World {
         //game values
@@ -65,6 +147,9 @@ module Pipe {
         public HighScore = 0;
         public InflowX = 10;
         public InflowY = 10;
+        public MainMenu:Gui;
+        public Hud: Gui;
+        public LoseScreen: Gui;
         ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
@@ -95,6 +180,7 @@ module Pipe {
         SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
         constructor() {
             this.Init();
+            this.InitGuis();
         }
         public Init() {
             this.PickedUpSand = 0;
@@ -122,6 +208,15 @@ module Pipe {
             }
             this.WorldGen();
         }
+        InitGuis() {
+            this.InitMainMenu();
+        }
+        InitMainMenu() {
+            this.MainMenu = new Gui(this.ctx, this.WorldSize, this.WorldSize);
+            var Start = new Button(0, 0, 100, 100, "YOLO");
+            this.MainMenu.Elements.push(Start);
+        }
+
         public VallyGen(x, y, SeedX, SeedY) {
             var val = Math.sin((x - y) / SeedX) * SeedY;
             return val;
@@ -428,15 +523,15 @@ module Pipe {
             var HeightPerSecond = 10;
             //if (Button == 0) { DeltaHeight = HeightPerSecond; }
             //if (Button == 2) { DeltaHeight = HeightPerSecond; }
-            if (Button == 1) { //DeltaHeight = -HeightPerSecond; }
+            if (MouseButton == 1) { //DeltaHeight = -HeightPerSecond; }
                 document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
                 //console.log(this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY));
             }
             var Direction = 0;
-            if (Button == 0) {
+            if (MouseButton == 0) {
                 Direction = 1;
             }
-            if (Button == 2) {
+            if (MouseButton == 2) {
                 Direction = -1;
             }
             if (Direction != 0) {
@@ -495,12 +590,6 @@ module Pipe {
                 }
             }
         }
-        public RenderMainMenu() {
-            this.ctx.fillStyle = "#00FFFF";
-            this.ctx.fillText("Start", this.Canvas.width / 2, this.Canvas.height / 4);
-            this.ctx.fillText("Credits", this.Canvas.width / 2, this.Canvas.height / 2);
-            this.ctx.fillText("Credits", this.Canvas.width / 2, (this.Canvas.height * 3) / 2);
-        }
         public RenderEndScreen() {
             this.ctx.fillStyle = "#00FFFF";
             this.ctx.fillText("Rekt", this.Canvas.width / 2, this.Canvas.height / 3);
@@ -514,7 +603,8 @@ module Pipe {
             switch(this.GameState)
             {
                 case 0:
-                    this.RenderMainMenu();
+                    this.MainMenu.Update(MouseX, MouseY, MouseButton);
+                    this.MainMenu.Render();
                     break;
                 case 1:
                     this.PollInput();
@@ -528,22 +618,26 @@ module Pipe {
             //return;
         }
     };
+    var MouseX = 0;
+    var MouseY = 0;
     var MouseChunkX = 0;
     var MouseChunkY = 0;
-    var Button = -1;
+    var MouseButton = -1;
     console.log("world defined");
     var world = new World();
     var Interval = 0;
     world.Canvas.onmousemove = function (event: MouseEvent) {
+        MouseX = event.pageX - world.Canvas.offsetLeft;
+        MouseY = event.pageY - world.Canvas.offsetTop;
         MouseChunkX = Math.floor((event.pageX - world.Canvas.offsetLeft) / world.GridToCanvas);
         MouseChunkY = Math.floor((event.pageY - world.Canvas.offsetTop) / world.GridToCanvas);
     };
     world.Canvas.onmousedown = function (event: MouseEvent) {
-        Button = event.button;
+        MouseButton = event.button;
         return true;
     };
     world.Canvas.onmouseup = function (event: MouseEvent) {
-        Button = -1;
+        MouseButton = -1;
         return true;
     };
     var UpdateSpeed = 10;
