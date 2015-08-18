@@ -163,7 +163,7 @@ module Pipe {
         public WorldSize = this.PlaySize / this.GridToCanvas;
         public StartTime = 100;
         public Time = 0;
-        public HousesRemaining = 5;
+        public HousesRemaining;
         public HighScore = 0;
         public InflowX = 10;
         public InflowY = 10;
@@ -182,7 +182,7 @@ module Pipe {
         public Inflow = 100;
         public OutFlow = 100;
         public MaxOutFlow = 100;
-        public SlumpConst = 0.1;
+        public SlumpConst = 0.05;
         public SlumpLimitDry = 10;
         public SlumpLimitWet = 0;
         ////Sim buffers
@@ -287,6 +287,7 @@ module Pipe {
             }
             this.GroundType.SetValueAt(this.InflowX, this.InflowY, 2);
             this.GroundType.SetValueAt(XLow, YLow, 3);
+            this.HousesRemaining = 5;
             for (var i = 0; i < this.HousesRemaining; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - 1));
                 var y = Math.round(Math.random() * (this.WorldSize - 1));
