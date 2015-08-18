@@ -4,7 +4,9 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-///Version 1.1 rel
+/*Version 1.2.1 rel
+Bug List:
+*/
 var Pipe;
 (function (Pipe) {
     var Grid = (function () {
@@ -103,20 +105,20 @@ var Pipe;
             this.Text.Render(gui);
         };
         Button.prototype.Update = function (gui) {
-            if (gui.Button == 0) {
-                if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX) {
-                    if (gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
-                        if (this.State == 0) {
-                            this.State = 1;
-                        }
+            if (gui.MouseX > this.X && gui.MouseX < this.X + this.SizeX && gui.MouseY > this.Y && gui.MouseY < this.Y + this.SizeY) {
+                if (gui.Button == 0) {
+                    if (this.State == 0) {
+                        this.State = 1;
+                    }
+                } else {
+                    if (this.State == 1) {
+                        this.State = 2;
+                    } else {
+                        this.State = 0;
                     }
                 }
             } else {
-                if (this.State == 1) {
-                    this.State = 2;
-                } else {
-                    this.State = 0;
-                }
+                this.State = 0;
             }
         };
         return Button;
@@ -195,6 +197,7 @@ var Pipe;
             this.HighScore = 0;
             this.InflowX = 10;
             this.InflowY = 10;
+            this.MaxSand = 7000;
             ///Sim values
             this.DeltaTime = 1;
             this.Gravity = 10;
@@ -274,10 +277,14 @@ var Pipe;
             var MainMenu = new Button(this.PlaySize, 50, 100, 50, "Main Menu", 15);
             var Time = new Lable(this.PlaySize, 125, "Time:", 15, false);
             var TimeN = new Lable(this.PlaySize, 150, "dsa", 15, false);
+            var Sand = new Lable(this.PlaySize, 200, "Sand:", 15, false);
+            var SandN = new Lable(this.PlaySize, 225, "dsa", 15, false);
             this.Hud.Elements.push(Restart);
             this.Hud.Elements.push(MainMenu);
             this.Hud.Elements.push(Time);
             this.Hud.Elements.push(TimeN);
+            this.Hud.Elements.push(Sand);
+            this.Hud.Elements.push(SandN);
         };
         World.prototype.InitLoseScreen = function () {
             this.LoseScreen = new Gui(this.ctx, this.PlaySize, this.PlaySize);
@@ -566,6 +573,14 @@ var Pipe;
             }
             //this.Inflow += 1;
         };
+        World.prototype.RenderBoarder = function () {
+            var Boarder = 2;
+            this.ctx.beginPath();
+            this.ctx.rect(1, 1, this.Canvas.width - (100 + Boarder), this.Canvas.height - Boarder);
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeStyle = 'black';
+            this.ctx.stroke();
+        };
         World.prototype.Render = function () {
             this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
@@ -607,7 +622,7 @@ var Pipe;
                     this.ctx.fillRect(x * this.GridToCanvas, y * this.GridToCanvas, this.GridToCanvas, this.GridToCanvas);
                 }
             }
-            return;
+            this.RenderBoarder();
         };
         World.prototype.PollInput = function () {
             var DeltaHeight = 0;
@@ -620,10 +635,10 @@ var Pipe;
             }
             var Direction = 0;
             if (MouseButton == 0) {
-                Direction = 1;
+                Direction = -1;
             }
             if (MouseButton == 2) {
-                Direction = -1;
+                Direction = 1;
             }
             if (Direction != 0) {
                 this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 100);
@@ -664,7 +679,7 @@ var Pipe;
             var Factor = factor;
             var Depth = 0;
             if (Direction == 1) {
-                Depth = 10;
+                Depth = 15;
             }
             var Min = -this.DistributionFunction(-SizeOffset, 0);
             for (var xo = 0; xo < Size; ++xo) {
@@ -694,18 +709,21 @@ var Pipe;
                         if (this.GroundHeight.GetValueAt(X, Y) + Distribution < 0) {
                             Distribution = -this.GroundHeight.GetValueAt(X, Y);
                         }
+
+                        if (this.PickedUpSand - Distribution > this.MaxSand) {
+                            Distribution = this.MaxSand - this.PickedUpSand;
+                        }
+                        if (this.PickedUpSand - Distribution < 0) {
+                            Distribution = this.PickedUpSand;
+                        }
+                        if (Math.abs(Distribution) < 0.1) {
+                            Distribution = 0;
+                        }
                         this.GroundHeight.AddValueAt(X, Y, Distribution);
                         this.PickedUpSand -= Distribution;
                     }
                 }
             }
-        };
-        World.prototype.RenderEndScreen = function () {
-            this.ctx.fillStyle = "#00FFFF";
-            this.ctx.fillText("Rekt", this.WorldSize / 2, this.Canvas.height / 3);
-            this.ctx.fillText(this.Time.toString(), this.Canvas.width / 2, this.Canvas.height * 2 / 3);
-        };
-        World.prototype.RenderLossMenu = function () {
         };
         World.prototype.MainLoop = function () {
             switch (this.GameState) {
@@ -715,11 +733,14 @@ var Pipe;
                     this.MainMenu.Render();
                     if (this.MainMenu.Elements[0].State == 2) {
                         this.GameState = 1;
+                        this.Time = 0;
+                        this.ResetGame();
                     }
-                    this.LoseScreen.Update(MouseX, MouseY, MouseButton);
+                    this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     break;
                 case 1:
                     this.Hud.Elements[3].Text = this.Time.toString();
+                    this.Hud.Elements[5].Text = this.PickedUpSand.toString();
                     this.PollInput();
                     this.Render();
                     this.Update();
@@ -728,7 +749,7 @@ var Pipe;
                     if (this.Hud.Elements[0].State == 2) {
                         this.ResetGame();
                     }
-                    if (this.LoseScreen.Elements[1].State == 2) {
+                    if (this.Hud.Elements[1].State == 2) {
                         this.GameState = 0;
                     }
                     this.Hud.Update(MouseX, MouseY, MouseButton);
@@ -736,6 +757,7 @@ var Pipe;
                 case 2:
                     this.LoseScreen.Elements[3].Text = "You lasted a time of:" + this.Time.toString();
                     this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+                    this.RenderBoarder();
                     this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     this.LoseScreen.Render();
                     if (this.LoseScreen.Elements[0].State == 2) {
