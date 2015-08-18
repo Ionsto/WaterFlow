@@ -4,6 +4,7 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
+///Version 1.1 rel
 var Pipe;
 (function (Pipe) {
     var Grid = (function () {
@@ -270,14 +271,18 @@ var Pipe;
         World.prototype.InitHUD = function () {
             this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
             var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 15);
-            var MainMenu = new Button(this.PlaySize, 100, 100, 50, "Main Menu", 15);
+            var MainMenu = new Button(this.PlaySize, 50, 100, 50, "Main Menu", 15);
+            var Time = new Lable(this.PlaySize, 125, "Time:", 15, false);
+            var TimeN = new Lable(this.PlaySize, 150, "dsa", 15, false);
             this.Hud.Elements.push(Restart);
             this.Hud.Elements.push(MainMenu);
+            this.Hud.Elements.push(Time);
+            this.Hud.Elements.push(TimeN);
         };
         World.prototype.InitLoseScreen = function () {
             this.LoseScreen = new Gui(this.ctx, this.PlaySize, this.PlaySize);
             var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 15);
-            var MainMenu = new Button(this.PlaySize, 100, 100, 50, "Main Menu", 15);
+            var MainMenu = new Button(this.PlaySize, 50, 100, 50, "Main Menu", 15);
             var Msg = new Lable(50, 100, "You got rekt", 30, false);
             var Score = new Lable(50, 200, "You lasted a time of:" + this.Time.toString(), 30, false);
             this.LoseScreen.Elements.push(Restart);
@@ -629,37 +634,45 @@ var Pipe;
             return -((x * x) + (y * y));
             //return Math.abs(x) + Math.abs(y);
         };
+        World.prototype.CanDig = function (X, Y, xo, yo, SizeOffset, Min, WaterDepth) {
+            if (X < 0) {
+                return false;
+            }
+            if (X >= this.WorldSize) {
+                return false;
+            }
+            if (Y < 0) {
+                return false;
+            }
+            if (Y >= this.WorldSize) {
+                return false;
+            }
+            if (this.WaterHeight.GetValueAt(X, Y) > WaterDepth) {
+                return false;
+            }
+            if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) {
+                return false;
+            }
+            if (this.GroundType.GetValueAt(xo - SizeOffset, yo - SizeOffset) == 1) {
+                return false;
+            }
+            return true;
+        };
         World.prototype.ManipulateSand = function (ChunkX, ChunkY, Size, Direction, factor) {
             var SizeOffset = Size / 2;
             var Area = 0;
             var Factor = factor;
+            var Depth = 0;
+            if (Direction == 1) {
+                Depth = 10;
+            }
             var Min = -this.DistributionFunction(-SizeOffset, 0);
             for (var xo = 0; xo < Size; ++xo) {
                 var X = MouseChunkX - (xo - SizeOffset);
-                if (X < 0) {
-                    continue;
-                }
-                if (X > this.WorldSize) {
-                    continue;
-                }
-                if (X > this.WorldSize) {
-                    continue;
-                }
                 for (var yo = 0; yo < Size; ++yo) {
-                    var Y = MouseChunkY - (yo - SizeOffset);
-                    if (Y < 0) {
-                        continue;
+                    if (this.CanDig(X, Y, xo, yo, SizeOffset, Min, Depth)) {
+                        Area += this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                     }
-                    if (Y > this.WorldSize) {
-                        continue;
-                    }
-                    if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) {
-                        continue;
-                    }
-                    if (this.GroundType.GetValueAt(xo - SizeOffset, yo - SizeOffset) == 1) {
-                        continue;
-                    }
-                    Area += this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
                 }
             }
             if (Factor * Area * Direction > this.PickedUpSand) {
@@ -667,40 +680,23 @@ var Pipe;
             }
             for (var xo = 0; xo < Size; ++xo) {
                 var X = MouseChunkX - (xo - SizeOffset);
-                if (X < 0) {
-                    continue;
-                }
-                if (X > this.WorldSize) {
-                    continue;
-                }
                 for (var yo = 0; yo < Size; ++yo) {
                     var Y = MouseChunkY - (yo - SizeOffset);
-                    if (Y < 0) {
-                        continue;
-                    }
-                    if (Y > this.WorldSize) {
-                        continue;
-                    }
-                    if (this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min < 0) {
-                        continue;
-                    }
-                    if (this.GroundType.GetValueAt(xo - SizeOffset, yo - SizeOffset) == 1) {
-                        continue;
-                    }
+                    if (this.CanDig(X, Y, xo, yo, SizeOffset, Min, Depth)) {
+                        //Simulate
+                        var Distribution = this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
+                        Distribution = (Direction * Distribution * Factor) / (Area);
 
-                    //Simulate
-                    var Distribution = this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
-                    Distribution = (Direction * Distribution * Factor) / (Area);
-
-                    //Distribution *= Direrction;
-                    if (this.GroundHeight.GetValueAt(X, Y) + Distribution > this.GroundHeight.MaxHeight) {
-                        Distribution = this.GroundHeight.MaxHeight - this.GroundHeight.GetValueAt(X, Y);
+                        //Distribution *= Direrction;
+                        if (this.GroundHeight.GetValueAt(X, Y) + Distribution > this.GroundHeight.MaxHeight) {
+                            Distribution = this.GroundHeight.MaxHeight - this.GroundHeight.GetValueAt(X, Y);
+                        }
+                        if (this.GroundHeight.GetValueAt(X, Y) + Distribution < 0) {
+                            Distribution = -this.GroundHeight.GetValueAt(X, Y);
+                        }
+                        this.GroundHeight.AddValueAt(X, Y, Distribution);
+                        this.PickedUpSand -= Distribution;
                     }
-                    if (this.GroundHeight.GetValueAt(X, Y) + Distribution < 0) {
-                        Distribution = -this.GroundHeight.GetValueAt(X, Y);
-                    }
-                    this.GroundHeight.AddValueAt(X, Y, Distribution);
-                    this.PickedUpSand -= Distribution;
                 }
             }
         };
@@ -720,8 +716,10 @@ var Pipe;
                     if (this.MainMenu.Elements[0].State == 2) {
                         this.GameState = 1;
                     }
+                    this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     break;
                 case 1:
+                    this.Hud.Elements[3].Text = this.Time.toString();
                     this.PollInput();
                     this.Render();
                     this.Update();
@@ -733,6 +731,7 @@ var Pipe;
                     if (this.LoseScreen.Elements[1].State == 2) {
                         this.GameState = 0;
                     }
+                    this.Hud.Update(MouseX, MouseY, MouseButton);
                     break;
                 case 2:
                     this.LoseScreen.Elements[3].Text = "You lasted a time of:" + this.Time.toString();
@@ -745,6 +744,7 @@ var Pipe;
                     if (this.LoseScreen.Elements[1].State == 2) {
                         this.GameState = 0;
                     }
+                    this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     break;
             }
             //return;
