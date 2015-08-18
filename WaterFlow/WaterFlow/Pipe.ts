@@ -107,16 +107,24 @@ module Pipe {
         public Y = 0;
         public Text = "";
         public FontSize = 30;
-        constructor(x, y, txt,size=30) {
+        public Centered = true;
+        constructor(x, y, txt,size=30,c=true) {
             super();
             this.X = x;
             this.Y = y;
             this.Text = txt;
             this.FontSize = size;
+            this.Centered = c;
         }
         public Render(gui: Gui) {
             gui.ctx.font = this.FontSize.toString() + "px Arial";
-            gui.ctx.fillText(this.Text, this.X - ((this.Text.length - 1) * (this.FontSize / 4)), this.Y + (this.FontSize * 0.5 / 2));
+            var x = this.X;
+            var y = this.Y;
+            if (this.Centered) {
+                x = this.X - ((this.Text.length - 1) * (this.FontSize / 4));
+                y = this.Y + (this.FontSize * 0.5 / 2);
+            }
+            gui.ctx.fillText(this.Text, x,y);
         }
     }
     class Gui {
@@ -246,17 +254,21 @@ module Pipe {
         }
         InitHUD() {
             this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
-            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 20);
-            var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits", 20);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 15);
+            var MainMenu = new Button(this.PlaySize, 100, 100, 50, "Main Menu", 15);
             this.Hud.Elements.push(Restart);
-            this.Hud.Elements.push(Credits);
+            this.Hud.Elements.push(MainMenu);
         }
         InitLoseScreen() {
             this.LoseScreen = new Gui(this.ctx, this.PlaySize, this.PlaySize);
-            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 20);
-            var Credits = new Button(this.PlaySize, 100, 100, 50, "Credits", 20);
+            var Restart = new Button(this.PlaySize, 0, 100, 50, "Restart", 15);
+            var MainMenu = new Button(this.PlaySize, 100, 100, 50, "Main Menu", 15);
+            var Msg = new Lable(50, 100, "You got rekt",30,false);
+            var Score = new Lable(50, 200, "You lasted a time of:" + this.Time.toString(),30,false);
             this.LoseScreen.Elements.push(Restart);
-            this.LoseScreen.Elements.push(Credits);
+            this.LoseScreen.Elements.push(MainMenu);
+            this.LoseScreen.Elements.push(Msg);
+            this.LoseScreen.Elements.push(Score);
         }
 
         public VallyGen(x, y, SeedX, SeedY) {
@@ -309,7 +321,7 @@ module Pipe {
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
                         var Waves = 0.5 * this.Time;
                         var IFlow = this.DeltaTime * Waves;
-                        document.getElementById("Flow").innerHTML = IFlow.toString();
+                        //document.getElementById("Flow").innerHTML = IFlow.toString();
                         this.WaterHeight.AddValueAt(x, y, IFlow);
                         this.SiltMap.AddValueAt(x, y, this.SedimentCapacityConst);
                     }
@@ -515,8 +527,9 @@ module Pipe {
             this.GroundHeightBuffer.MaxHeight = this.GroundHeight.MaxHeight;
         }
         Update() {
+            this.Time++;
             for (var i = 0; i < this.UpdatePerTick; ++i) {
-                if (this.Time++ >= this.StartTime) { this.UpdateWorldFlow(); }
+                if (this.Time >= this.StartTime) { this.UpdateWorldFlow(); }
                 this.UpdateWater();
                 this.UpdateVelocity();
                 this.UpdateSilting();
@@ -567,8 +580,8 @@ module Pipe {
             //if (Button == 0) { DeltaHeight = HeightPerSecond; }
             //if (Button == 2) { DeltaHeight = HeightPerSecond; }
             if (MouseButton == 1) { //DeltaHeight = -HeightPerSecond; }
-                document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
-                //console.log(this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY));
+                //document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
+                
             }
             var Direction = 0;
             if (MouseButton == 0) {
@@ -662,13 +675,20 @@ module Pipe {
                     if ((<Button>this.Hud.Elements[0]).State == 2) {
                         this.ResetGame();
                     }
+                    if ((<Button>this.LoseScreen.Elements[1]).State == 2) {
+                        this.GameState = 0;
+                    }
                     break;
                 case 2:
+                    (<Lable>this.LoseScreen.Elements[3]).Text = "You lasted a time of:" + this.Time.toString();
                     this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
                     this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     this.LoseScreen.Render();
                     if ((<Button>this.LoseScreen.Elements[0]).State == 2) {
                         this.ResetGame();
+                    }
+                    if ((<Button>this.LoseScreen.Elements[1]).State == 2) {
+                        this.GameState = 0;
                     }
                     break;
             }
