@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="app.css" type="text/css" />
 </head>
 <body>
-    <canvas id="GuiCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 1;" ></canvas>
+    <script id="shader-vs" type="x-shader/x-vertex" src="VertexShader.fs"></script>
+    <script id="shader-fs" type="x-shader/x-fragment" src="FragmentShader.fs"></script>
+    <canvas id="GuiCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 1;"></canvas>
     <canvas id="RenderCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 0;"></canvas>
     <script src="Pipe.js"></script>
 </body>

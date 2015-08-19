@@ -23,9 +23,11 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Pipe.ts" />
+    <TypeScriptCompile Include="WebGL.d.ts" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Home.pubxml" />
+    <Content Include="VertexShader.vs" />
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
@@ -33,7 +35,9 @@
       <DependentUpon>web.config</DependentUpon>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="FragmentShader.fs" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
