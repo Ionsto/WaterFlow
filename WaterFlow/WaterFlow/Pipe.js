@@ -4,7 +4,7 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-/*Version 1.3 rel
+/*Version 1.3.1 rel
 Bug List:
 */
 var Pipe;
@@ -362,13 +362,17 @@ var Pipe;
             this.Map = this.GameSelection.Elements[1].OptionSelected;
             if (this.Map == 0) {
                 this.HousesRemaining = 5;
+                this.MaxSand = 6000;
                 this.WorldGenClassic();
             }
             if (this.Map == 1) {
                 this.HousesRemaining = 20;
+                this.MaxSand = 6000;
                 this.WorldGenClassic();
+                this.HousesRemaining = 5;
             }
             if (this.Map == 2) {
+                this.MaxSand = 7000;
                 this.WorldGenTwoVillages();
             }
             if (this.Map == 3) {
@@ -378,6 +382,7 @@ var Pipe;
                 this.WorldGenTwoVillages();
             }
             if (this.Map == 5) {
+                this.MaxSand = 5000;
                 this.HousesRemaining = 5;
                 this.WorldGenMountains();
             }
@@ -404,6 +409,8 @@ var Pipe;
             this.Hud.AddElement(new Lable(this.PlaySize, 150, "Time Number here", 15, false)); //5
             this.Hud.AddElement(new Lable(this.PlaySize, 200, "Sand:", 15, false));
             this.Hud.AddElement(new Lable(this.PlaySize, 225, "Sand Number here", 15, false)); //7
+            this.Hud.AddElement(new Lable(this.PlaySize, 250, "Lives:", 15, false));
+            this.Hud.AddElement(new Lable(this.PlaySize, 275, "Live Number here", 15, false)); //9
         };
         World.prototype.GotoLoseScreen = function () {
             this.GameState = 2;
@@ -863,10 +870,10 @@ var Pipe;
                 Direction = -1;
             }
             if (MouseButton == 2) {
-                Direction = 1;
+                Direction = 2;
             }
             if (Direction != 0) {
-                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 100);
+                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 0.3);
             }
             //Button = -1;
         };
@@ -916,7 +923,7 @@ var Pipe;
                 }
             }
             if (Factor * Area * Direction > this.PickedUpSand) {
-                Factor *= (this.PickedUpSand / Area);
+                Factor = (this.PickedUpSand / Area);
             }
             for (var xo = 0; xo < Size; ++xo) {
                 var X = MouseChunkX - (xo - SizeOffset);
@@ -925,7 +932,7 @@ var Pipe;
                     if (this.CanDig(X, Y, xo, yo, SizeOffset, Min, Depth)) {
                         //Simulate
                         var Distribution = this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
-                        Distribution = (Direction * Distribution * Factor) / (Area);
+                        Distribution = (Direction * Distribution * Factor); // / (Area);
 
                         //Distribution *= Direrction;
                         if (this.GroundHeight.GetValueAt(X, Y) + Distribution > this.GroundHeight.MaxHeight) {
@@ -941,10 +948,9 @@ var Pipe;
                         if (this.PickedUpSand - Distribution < 0) {
                             Distribution = this.PickedUpSand;
                         }
-
-                        //if (Math.abs(Distribution) < 0.1) {
-                        //    Distribution = 0;
-                        //}
+                        if (Math.abs(Distribution) < 0.1) {
+                            Distribution = 0;
+                        }
                         this.GroundHeight.AddValueAt(X, Y, Distribution);
                         this.PickedUpSand -= Distribution;
                     }
@@ -968,6 +974,7 @@ var Pipe;
                 case 1:
                     this.Hud.Elements[5].Text = this.Time.toString();
                     this.Hud.Elements[7].Text = this.PickedUpSand.toString();
+                    this.Hud.Elements[9].Text = this.HousesRemaining.toString();
                     this.PollInput();
                     this.Render();
                     this.Update();
