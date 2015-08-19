@@ -218,7 +218,7 @@ module Pipe {
         public Button = -1;
         public Width = 0;
         public Height = 0;
-        public Active = false;
+        public Active = true;
         public Elements: Array<Element> = [];
         public RenderList: Array<Array<Element>> = [];//0 = id, 1 = z
         public ctx: CanvasRenderingContext2D;
@@ -243,17 +243,21 @@ module Pipe {
             this.MouseX = mx;
             this.MouseY = my;
             this.Button = b;
-            for (var i = 0; i < this.Elements.length; ++i) {
-                if (this.Elements[i].Active) {
-                    this.Elements[i].Update(this);
+            if (this.Active) {
+                for (var i = 0; i < this.Elements.length; ++i) {
+                    if (this.Elements[i].Active) {
+                        this.Elements[i].Update(this);
+                    }
                 }
             }
         }
         Render() {
-            for (var i = 0; i < this.RenderList.length; ++i) {
-                for (var j = 0; j < this.RenderList[i].length; ++j) {
-                    if (this.RenderList[i][j].Active) {
-                        this.RenderList[i][j].Render(this);
+            if(this.Active){
+                for (var i = 0; i < this.RenderList.length; ++i) {
+                    for (var j = 0; j < this.RenderList[i].length; ++j) {
+                        if (this.RenderList[i][j].Active) {
+                            this.RenderList[i][j].Render(this);
+                        }
                     }
                 }
             }
@@ -279,7 +283,8 @@ module Pipe {
         public Hud: Gui;
         public LoseScreen: Gui;
         public Credits: Gui;
-        public GameSelection: Gui;
+        public GameSelection: Gui;//Normal
+        public GameSelectionCustom: Gui;//custom
         ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
@@ -290,9 +295,9 @@ module Pipe {
         public SedimentDissolvingConst = 1;
         public SedimentCapacityConst = 0.01;
         public Inflow = 100;
-        public OutFlow = 100;
+        public OutFlow =1000;
         public MaxOutFlow = 100;
-        public SlumpConst = 0.05;
+        public SlumpConst = 0.03;
         public SlumpLimitDry = 10;
         public SlumpLimitWet = 0;
         ////Sim buffers
@@ -319,6 +324,8 @@ module Pipe {
             this.Canvas.width = (this.PlaySize) + 100;
             this.Canvas.height = (this.PlaySize);
             this.ctx = <CanvasRenderingContext2D> this.Canvas.getContext("2d");
+            this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+                
         }
         InitGame() {
             this.PickedUpSand = 0;
@@ -350,7 +357,7 @@ module Pipe {
                 this.HousesRemaining = 20;
                 this.MaxSand = 6000;
                 this.WorldGenClassic();
-                this.HousesRemaining = 5;
+                this.HousesRemaining = 15;
             }
             if (this.Map == 2) {//Tow villages
                 this.MaxSand = 7000;
@@ -378,8 +385,20 @@ module Pipe {
         GotoGameSelection() {
             this.GameState = 3;
             this.GameSelection = new Gui(this.ctx, this.PlaySize, this.PlaySize);
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"],15,false));//1
-            this.GameSelection.AddElement(new Button(this.GameSelection,0, 100, 100, 50, "Start"));//3
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false));//1
+            this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start"));//3
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false));//5
+        }
+        SetGameSelectionCustom(State) {
+            if (!State) {
+                this.GameSelectionCustom.Active = false;
+            }
+            else {
+                this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false));//1
+                this.GameSelectionCustom.AddElement(new Button(this.GameSelectionCustom, 200, 100, 100, 50, "Start"));//3
+                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false));//1
+            }
         }
         GotoHUD() {
             this.GameState = 1;
@@ -410,8 +429,8 @@ module Pipe {
             this.Credits.AddElement(new Lable(50, 200, "Nik: Skrub", 30, false));
         }
 
-        public VallyGen(x, y, SeedX, SeedY) {
-            var val = Math.sin(x - (y / SeedX)) * SeedY;
+        public VallyGen(x, y, SeedX, SeedY, SeedZ) {
+            var val = Math.sin((x - (y / SeedX))/SeedZ) * SeedY;
             return val;
         }
         public MountainGen(x, y, SeedX, SeedY,SeedZ) {
@@ -433,8 +452,9 @@ module Pipe {
         public WorldGenClassic(ix = 10, iy = 10) {
             var InflowX = ix;
             var InflowY = iy;
-            var SeedX = (Math.random() * 5);
+            var SeedX = (Math.random()) + 0.5;
             var SeedY = (Math.random() * 10);
+            var SeedZ = (Math.random() * 10);
             var SeedXR = (Math.random() * 100);
             var SeedYR = (Math.random() * 5);
             this.RockHeight.MaxHeight = 0;
@@ -444,7 +464,7 @@ module Pipe {
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     //this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR))));
-                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY)));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY, SeedZ)));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -475,6 +495,7 @@ module Pipe {
             var InflowY = iy;
             var SeedX = (Math.random() * 10);
             var SeedY = (Math.random() * 5);
+            var SeedZ = (Math.random() * 10);
             var SeedXR = (Math.random() * 100);
             var SeedYR = (Math.random() * 6);
             var SeedZR = (Math.random() * 5);
@@ -484,7 +505,7 @@ module Pipe {
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR,SeedZR))));
-                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY)));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY,SeedZ)));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -831,7 +852,7 @@ module Pipe {
                 Direction = -1;
             }
             if (MouseButton == 2) {
-                Direction = 2;
+                Direction = 1.5;
             }
             if (Direction != 0) {
                 this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction,0.3);
@@ -857,7 +878,7 @@ module Pipe {
             var Area = 0;
             var Factor = factor;
             var Depth = 0;
-            if (Direction == 1)
+            if (Direction > 0)
             {
                 Depth = 15;
             }
@@ -956,6 +977,14 @@ module Pipe {
                     if ((<Button>this.GameSelection.Elements[3]).State == 2) {
                         this.InitGame();
                     }
+                    if ((<DropDown>this.GameSelection.Elements[5]).OptionSelected == 0) {
+                        this.SetGameSelectionCustom(false);
+                    }
+                    else {
+                        this.SetGameSelectionCustom(true);
+                    }
+                    this.GameSelectionCustom.Update(MouseX, MouseY, MouseButton);
+                    this.GameSelectionCustom.Render();
                     ///this.GameSelection.Update(MouseX, MouseY, MouseButton);
                     break;
                 case 4://Credits

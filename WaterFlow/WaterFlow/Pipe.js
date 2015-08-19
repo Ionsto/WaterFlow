@@ -246,7 +246,7 @@ var Pipe;
             this.Button = -1;
             this.Width = 0;
             this.Height = 0;
-            this.Active = false;
+            this.Active = true;
             this.Elements = [];
             this.RenderList = [];
             this.ctx = ctx;
@@ -269,17 +269,21 @@ var Pipe;
             this.MouseX = mx;
             this.MouseY = my;
             this.Button = b;
-            for (var i = 0; i < this.Elements.length; ++i) {
-                if (this.Elements[i].Active) {
-                    this.Elements[i].Update(this);
+            if (this.Active) {
+                for (var i = 0; i < this.Elements.length; ++i) {
+                    if (this.Elements[i].Active) {
+                        this.Elements[i].Update(this);
+                    }
                 }
             }
         };
         Gui.prototype.Render = function () {
-            for (var i = 0; i < this.RenderList.length; ++i) {
-                for (var j = 0; j < this.RenderList[i].length; ++j) {
-                    if (this.RenderList[i][j].Active) {
-                        this.RenderList[i][j].Render(this);
+            if (this.Active) {
+                for (var i = 0; i < this.RenderList.length; ++i) {
+                    for (var j = 0; j < this.RenderList[i].length; ++j) {
+                        if (this.RenderList[i][j].Active) {
+                            this.RenderList[i][j].Render(this);
+                        }
                     }
                 }
             }
@@ -309,9 +313,9 @@ var Pipe;
             this.SedimentDissolvingConst = 1;
             this.SedimentCapacityConst = 0.01;
             this.Inflow = 100;
-            this.OutFlow = 100;
+            this.OutFlow = 1000;
             this.MaxOutFlow = 100;
-            this.SlumpConst = 0.05;
+            this.SlumpConst = 0.03;
             this.SlumpLimitDry = 10;
             this.SlumpLimitWet = 0;
             ////Sim buffers
@@ -337,6 +341,7 @@ var Pipe;
             this.Canvas.width = (this.PlaySize) + 100;
             this.Canvas.height = (this.PlaySize);
             this.ctx = this.Canvas.getContext("2d");
+            this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
         };
         World.prototype.InitGame = function () {
             this.PickedUpSand = 0;
@@ -369,7 +374,7 @@ var Pipe;
                 this.HousesRemaining = 20;
                 this.MaxSand = 6000;
                 this.WorldGenClassic();
-                this.HousesRemaining = 5;
+                this.HousesRemaining = 15;
             }
             if (this.Map == 2) {
                 this.MaxSand = 7000;
@@ -399,6 +404,18 @@ var Pipe;
             this.GameSelection = new Gui(this.ctx, this.PlaySize, this.PlaySize);
             this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false)); //1
             this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start")); //3
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false)); //5
+        };
+        World.prototype.SetGameSelectionCustom = function (State) {
+            if (!State) {
+                this.GameSelectionCustom.Active = false;
+            } else {
+                this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+
+                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false));//1
+                this.GameSelectionCustom.AddElement(new Button(this.GameSelectionCustom, 200, 100, 100, 50, "Start")); //3
+                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false));//1
+            }
         };
         World.prototype.GotoHUD = function () {
             this.GameState = 1;
@@ -429,8 +446,8 @@ var Pipe;
             this.Credits.AddElement(new Lable(50, 200, "Nik: Skrub", 30, false));
         };
 
-        World.prototype.VallyGen = function (x, y, SeedX, SeedY) {
-            var val = Math.sin(x - (y / SeedX)) * SeedY;
+        World.prototype.VallyGen = function (x, y, SeedX, SeedY, SeedZ) {
+            var val = Math.sin((x - (y / SeedX)) / SeedZ) * SeedY;
             return val;
         };
         World.prototype.MountainGen = function (x, y, SeedX, SeedY, SeedZ) {
@@ -454,8 +471,9 @@ var Pipe;
             if (typeof iy === "undefined") { iy = 10; }
             var InflowX = ix;
             var InflowY = iy;
-            var SeedX = (Math.random() * 5);
+            var SeedX = (Math.random()) + 0.5;
             var SeedY = (Math.random() * 10);
+            var SeedZ = (Math.random() * 10);
             var SeedXR = (Math.random() * 100);
             var SeedYR = (Math.random() * 5);
             this.RockHeight.MaxHeight = 0;
@@ -465,7 +483,7 @@ var Pipe;
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     //this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR))));
-                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY)));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY, SeedZ)));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -497,6 +515,7 @@ var Pipe;
             var InflowY = iy;
             var SeedX = (Math.random() * 10);
             var SeedY = (Math.random() * 5);
+            var SeedZ = (Math.random() * 10);
             var SeedXR = (Math.random() * 100);
             var SeedYR = (Math.random() * 6);
             var SeedZR = (Math.random() * 5);
@@ -506,7 +525,7 @@ var Pipe;
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     this.RockHeight.SetValueAt(x, y, Math.max(0, (this.MountainGen(x, y, SeedXR, SeedYR, SeedZR))));
-                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY)));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY, SeedZ)));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -870,7 +889,7 @@ var Pipe;
                 Direction = -1;
             }
             if (MouseButton == 2) {
-                Direction = 2;
+                Direction = 1.5;
             }
             if (Direction != 0) {
                 this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 0.3);
@@ -910,7 +929,7 @@ var Pipe;
             var Area = 0;
             var Factor = factor;
             var Depth = 0;
-            if (Direction == 1) {
+            if (Direction > 0) {
                 Depth = 15;
             }
             var Min = -this.DistributionFunction(-SizeOffset, 0);
@@ -1008,6 +1027,13 @@ var Pipe;
                     if (this.GameSelection.Elements[3].State == 2) {
                         this.InitGame();
                     }
+                    if (this.GameSelection.Elements[5].OptionSelected == 0) {
+                        this.SetGameSelectionCustom(false);
+                    } else {
+                        this.SetGameSelectionCustom(true);
+                    }
+                    this.GameSelectionCustom.Update(MouseX, MouseY, MouseButton);
+                    this.GameSelectionCustom.Render();
 
                     break;
                 case 4:
