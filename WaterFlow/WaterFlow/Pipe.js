@@ -422,6 +422,10 @@ var Pipe;
                 this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
             }
             this.GridVertexBuffer = this.RenderctxGL.createBuffer();
+            for (var x = 0; x < this.WorldSize; ++x) {
+                for (var y = 0; y < this.WorldSize; ++y) {
+                }
+            }
         };
 
         World.prototype.InitGame = function () {
@@ -960,7 +964,7 @@ var Pipe;
             }
         };
         World.prototype.RenderWebGL = function () {
-            //
+            ///
         };
 
         World.prototype.Render = function () {

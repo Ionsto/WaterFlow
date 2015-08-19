@@ -412,6 +412,11 @@ module Pipe {
                 this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
             }
             this.GridVertexBuffer = this.RenderctxGL.createBuffer();
+            for (var x = 0; x < this.WorldSize; ++x) {
+                for (var y = 0; y < this.WorldSize; ++y) {
+
+                }
+            }
         }
 
         InitGame() {
@@ -929,7 +934,8 @@ module Pipe {
             }
         }
         RenderWebGL() {
-            //
+            ///
+
         }
 
         Render() {
