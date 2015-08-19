@@ -5,6 +5,7 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 /// <refrence href="WebGL.d.ts">
+/// <refrence href="Scripts/jquery-2.1.4.js">
 /*Version 1.3.1 rel
 Bug List:
 */
@@ -354,7 +355,7 @@ var Pipe;
         };
         World.prototype.InitRenderCanvas = function () {
             try  {
-                this.RenderctxGL = this.RenderCanvas.getContext("experimental-webgl");
+                this.RenderctxGL = this.RenderCanvas.getContext("webgl") || this.RenderCanvas.getContext("experimental-webgl");
                 this.RenderctxGL.viewport(0, 0, this.RenderCanvas.width, this.RenderCanvas.height);
             } catch (e) {
                 console.log(e);
@@ -378,6 +379,7 @@ var Pipe;
             if (!shaderScript) {
                 return null;
             }
+            alert(shaderScript.innerHTML);
             var str = "";
             var k = shaderScript.firstChild;
             while (k) {
@@ -394,10 +396,11 @@ var Pipe;
             } else {
                 return null;
             }
+            console.log("Compiling Shader " + shaderScript.type);
             gl.shaderSource(shader, str);
             gl.compileShader(shader);
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                alert(gl.getShaderInfoLog(shader));
+                console.log(gl.getShaderInfoLog(shader));
                 return null;
             }
             return shader;
@@ -411,7 +414,7 @@ var Pipe;
             this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
             this.RenderctxGL.linkProgram(this.ShaderProgram);
             if (!this.RenderctxGL.getProgramParameter(this.ShaderProgram, this.RenderctxGL.LINK_STATUS)) {
-                alert("Could not initialise shaders");
+                console.log("Could not initialise shaders");
             }
             this.RenderctxGL.useProgram(this.ShaderProgram);
             this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPos");
@@ -1162,6 +1165,12 @@ var Pipe;
     var MouseButton = -1;
     console.log("world defined");
     var world = new World();
+    $("#FragmentShader").load("FragmentShader.fs", function () {
+        alert("Load was performed.");
+    });
+    $("#FragmentShader").load("FragmentShader.fs", function () {
+        alert("Load was performed.");
+    });
     var Interval = 0;
     world.GuiCanvas.onmousemove = function (event) {
         MouseX = event.pageX - world.GuiCanvas.offsetLeft;
