@@ -337,11 +337,11 @@ var Pipe;
             //this.InitGuis();
         }
         World.prototype.Init = function () {
-            this.Canvas = document.getElementById("RenderCanvas");
-            this.Canvas.width = (this.PlaySize) + 100;
-            this.Canvas.height = (this.PlaySize);
-            this.ctx = this.Canvas.getContext("2d");
-            this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.GuiCanvas = document.getElementById("GuiRenderCanvas");
+            this.GuiCanvas.width = (this.PlaySize) + 100;
+            this.GuiCanvas.height = (this.PlaySize);
+            this.Guictx = this.GuiCanvas.getContext("2d");
+            this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
         };
         World.prototype.InitGame = function () {
             this.PickedUpSand = 0;
@@ -395,13 +395,13 @@ var Pipe;
         };
         World.prototype.GotoMainMenu = function () {
             this.GameState = 0;
-            this.MainMenu = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.MainMenu = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.MainMenu.AddElement(new Button(this.MainMenu, this.PlaySize / 2, 100, 100, 50, "Start", 30)); //1
             this.MainMenu.AddElement(new Button(this.MainMenu, this.PlaySize / 2, 200, 100, 50, "Credits")); //3
         };
         World.prototype.GotoGameSelection = function () {
             this.GameState = 3;
-            this.GameSelection = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.GameSelection = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false)); //1
             this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start")); //3
             this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false)); //5
@@ -410,7 +410,7 @@ var Pipe;
             if (!State) {
                 this.GameSelectionCustom.Active = false;
             } else {
-                this.GameSelectionCustom = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+                this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
 
                 //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false));//1
                 this.GameSelectionCustom.AddElement(new Button(this.GameSelectionCustom, 200, 100, 100, 50, "Start")); //3
@@ -419,7 +419,7 @@ var Pipe;
         };
         World.prototype.GotoHUD = function () {
             this.GameState = 1;
-            this.Hud = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.Hud = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 0, 100, 50, "Restart", 15)); //1
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 50, 100, 50, "Main Menu", 15)); //3
             this.Hud.AddElement(new Lable(this.PlaySize, 125, "Time:", 15, false));
@@ -431,7 +431,7 @@ var Pipe;
         };
         World.prototype.GotoLoseScreen = function () {
             this.GameState = 2;
-            this.LoseScreen = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.LoseScreen = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.LoseScreen.AddElement(new Button(this.LoseScreen, this.PlaySize, 0, 100, 50, "Restart", 15)); //1
             this.LoseScreen.AddElement(new Button(this.LoseScreen, this.PlaySize, 50, 100, 50, "Main Menu", 15)); //3
             this.LoseScreen.AddElement(new Lable(50, 100, "You got rekt", 30, false));
@@ -439,7 +439,7 @@ var Pipe;
         };
         World.prototype.GotoCredits = function () {
             this.GameState = 4;
-            this.Credits = new Gui(this.ctx, this.PlaySize, this.PlaySize);
+            this.Credits = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.Credits.AddElement(new Button(this.Credits, this.PlaySize, 0, 100, 50, "Main Menu", 15)); //1
             this.Credits.AddElement(new Lable(50, 100, "Sam: Programmer, designer", 30, false));
             this.Credits.AddElement(new Lable(50, 150, "Sacha: Designer, tester", 30, false));
@@ -807,15 +807,15 @@ var Pipe;
         World.prototype.RenderBoarder = function (xo) {
             if (typeof xo === "undefined") { xo = 0; }
             var Boarder = 2;
-            this.ctx.beginPath();
-            this.ctx.rect(1, 1, this.Canvas.width - (Boarder + xo), this.Canvas.height - Boarder);
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeStyle = 'black';
-            this.ctx.stroke();
+            this.Guictx.beginPath();
+            this.Guictx.rect(1, 1, this.GuiCanvas.width - (Boarder + xo), this.GuiCanvas.height - Boarder);
+            this.Guictx.lineWidth = 2;
+            this.Guictx.strokeStyle = 'black';
+            this.Guictx.stroke();
         };
         World.prototype.Render = function () {
-            this.ctx.fillStyle = "#FFFFFF";
-            this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+            this.Guictx.fillStyle = "#FFFFFF";
+            this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
                     //FFC877 Sand brightest.
@@ -869,8 +869,8 @@ var Pipe;
                         fillG = "FF";
                         fillB = "00";
                     }
-                    this.ctx.fillStyle = "#" + fillR + fillG + fillB;
-                    this.ctx.fillRect(x * this.GridToCanvas, y * this.GridToCanvas, this.GridToCanvas, this.GridToCanvas);
+                    this.Guictx.fillStyle = "#" + fillR + fillG + fillB;
+                    this.Guictx.fillRect(x * this.GridToCanvas, y * this.GridToCanvas, this.GridToCanvas, this.GridToCanvas);
                 }
             }
             this.RenderBoarder(100);
@@ -979,7 +979,7 @@ var Pipe;
         World.prototype.MainLoop = function () {
             switch (this.GameState) {
                 case 0:
-                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+                    this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
                     this.MainMenu.Render();
                     if (this.MainMenu.Elements[1].State == 2) {
@@ -1009,7 +1009,7 @@ var Pipe;
                     break;
                 case 2:
                     this.LoseScreen.Elements[5].Text = "You lasted a time of:" + this.Time.toString();
-                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+                    this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.LoseScreen.Update(MouseX, MouseY, MouseButton);
                     this.LoseScreen.Render();
                     if (this.LoseScreen.Elements[1].State == 2) {
@@ -1021,7 +1021,7 @@ var Pipe;
 
                     break;
                 case 3:
-                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+                    this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.GameSelection.Update(MouseX, MouseY, MouseButton);
                     this.GameSelection.Render();
                     if (this.GameSelection.Elements[3].State == 2) {
@@ -1037,7 +1037,7 @@ var Pipe;
 
                     break;
                 case 4:
-                    this.ctx.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
+                    this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.Credits.Update(MouseX, MouseY, MouseButton);
                     this.Credits.Render();
                     if (this.Credits.Elements[1].State == 2) {
@@ -1062,17 +1062,17 @@ var Pipe;
     console.log("world defined");
     var world = new World();
     var Interval = 0;
-    world.Canvas.onmousemove = function (event) {
-        MouseX = event.pageX - world.Canvas.offsetLeft;
-        MouseY = event.pageY - world.Canvas.offsetTop;
-        MouseChunkX = Math.floor((event.pageX - world.Canvas.offsetLeft) / world.GridToCanvas);
-        MouseChunkY = Math.floor((event.pageY - world.Canvas.offsetTop) / world.GridToCanvas);
+    world.GuiCanvas.onmousemove = function (event) {
+        MouseX = event.pageX - world.GuiCanvas.offsetLeft;
+        MouseY = event.pageY - world.GuiCanvas.offsetTop;
+        MouseChunkX = Math.floor((event.pageX - world.GuiCanvas.offsetLeft) / world.GridToCanvas);
+        MouseChunkY = Math.floor((event.pageY - world.GuiCanvas.offsetTop) / world.GridToCanvas);
     };
-    world.Canvas.onmousedown = function (event) {
+    world.GuiCanvas.onmousedown = function (event) {
         MouseButton = event.button;
         return true;
     };
-    world.Canvas.onmouseup = function (event) {
+    world.GuiCanvas.onmouseup = function (event) {
         MouseButton = -1;
         return true;
     };

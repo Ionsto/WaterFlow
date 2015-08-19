@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="app.css" type="text/css" />
 </head>
 <body>
-    <canvas id="RenderCanvas" width="500" height="500" oncontextmenu="return false;"></canvas>
+    <canvas id="GuiCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 1;" ></canvas>
+    <canvas id="RenderCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 0;"></canvas>
     <script src="Pipe.js"></script>
 </body>
 </html>
