@@ -1,5 +1,4 @@
 /// <refrence href="WebGL.d.ts">
-/// <refrence href="Scripts/jquery-2.1.4.js">
 /*Version 1.3.1 rel
 Bug List:
 */
@@ -61,7 +60,7 @@ module Pipe {
         constructor(z = 0) {
             this.Z = z;
         }
-        public Remove(gui:Gui) {}
+        public Remove(gui: Gui) { }
         public Update(gui: Gui) { }
         public Render(gui: Gui) { }
     }
@@ -73,7 +72,7 @@ module Pipe {
         public Text: Lable;
         public State = 0;
         public Centered = true;
-        constructor(gui:Gui,x, y, sx, sy, txt, fsize= 30, c = true,z = 0) {
+        constructor(gui: Gui, x, y, sx, sy, txt, fsize= 30, c = true, z = 0) {
             super(z);
             this.X = x;
             this.Y = y;
@@ -158,20 +157,20 @@ module Pipe {
         OptionButtons: Array<Button> = [];
         OptionSelected = 0;
         Droped = false;
-        constructor(gui,x, y, sx, sy, options, fsize = 30, c = true,z = 0) {
-            super(gui,x, y, sx, sy, options[0], fsize, c,z);
+        constructor(gui, x, y, sx, sy, options, fsize = 30, c = true, z = 0) {
+            super(gui, x, y, sx, sy, options[0], fsize, c, z);
             this.Options = options;
-            this.OptionsNonDisplay = this.Options.slice(0,this.Options.length);
+            this.OptionsNonDisplay = this.Options.slice(0, this.Options.length);
             this.OptionsNonDisplay.shift();
         }
-        Drop(gui:Gui) {
+        Drop(gui: Gui) {
             this.Droped = true;
             for (var i = 0; i < this.OptionsNonDisplay.length; ++i) {
                 this.OptionButtons.push(new Button(gui, this.X, this.Y + (this.SizeY * (i + 1)), this.SizeX, this.SizeY, this.OptionsNonDisplay[i], this.Text.FontSize, this.Centered, this.Z + 2));
                 gui.AddElement(this.OptionButtons[i]);
             }
         }
-        Select(Selected,gui:Gui) {
+        Select(Selected, gui: Gui) {
             for (var i = 0; i < this.OptionButtons.length; ++i) {
                 gui.RemoveElement(this.OptionButtons[i]);
             }
@@ -200,11 +199,11 @@ module Pipe {
                 for (var i = 0; i < this.OptionButtons.length; ++i) {
                     this.OptionButtons[i].Update(gui);
                     if (this.OptionButtons[i].State == 2) {
-                        this.Select(this.Options.indexOf(this.OptionButtons[i].Text.Text),gui);
+                        this.Select(this.Options.indexOf(this.OptionButtons[i].Text.Text), gui);
                     }
                 }
                 if (this.State == 2) {
-                    this.Select(this.OptionSelected,gui);
+                    this.Select(this.OptionSelected, gui);
                 }
             }
             else {
@@ -236,9 +235,9 @@ module Pipe {
             this.Elements.push(element);
             this.RenderList[element.Z].push(element);
         }
-        public RemoveElement(element :Element) {
+        public RemoveElement(element: Element) {
             element.Remove(this);
-            this.Elements.splice(this.Elements.indexOf(element),1);
+            this.Elements.splice(this.Elements.indexOf(element), 1);
             this.RenderList[element.Z].splice(this.RenderList[element.Z].indexOf(element), 1);
         }
         Update(mx, my, b) {
@@ -254,7 +253,7 @@ module Pipe {
             }
         }
         Render() {
-            if(this.Active){
+            if (this.Active) {
                 for (var i = 0; i < this.RenderList.length; ++i) {
                     for (var j = 0; j < this.RenderList[i].length; ++j) {
                         if (this.RenderList[i][j].Active) {
@@ -275,7 +274,7 @@ module Pipe {
         //WebGL
         public RenderctxGL: WebGLRenderingContext;
         public CanRenderWebGL = true;
-        public ShaderProgram:WebGLProgram;
+        public ShaderProgram: WebGLProgram;
         public VertexPos: number;
         public GridVertexBuffer: WebGLBuffer = null;
 
@@ -306,7 +305,7 @@ module Pipe {
         public SedimentDissolvingConst = 1;
         public SedimentCapacityConst = 0.01;
         public Inflow = 100;
-        public OutFlow =1000;
+        public OutFlow = 1000;
         public MaxOutFlow = 100;
         public SlumpConst = 0.03;
         public SlumpLimitDry = 10;
@@ -346,7 +345,7 @@ module Pipe {
         public InitRenderCanvas() {
             try {
                 this.RenderctxGL = this.RenderCanvas.getContext("webgl") || this.RenderCanvas.getContext("experimental-webgl");
-                this.RenderctxGL.viewport(0,0,this.RenderCanvas.width,this.RenderCanvas.height);
+                this.RenderctxGL.viewport(0, 0, this.RenderCanvas.width, this.RenderCanvas.height);
             } catch (e) {
                 console.log(e);
             }
@@ -411,7 +410,7 @@ module Pipe {
             this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
         }
         InitBuffers() {
-            if (this.GridVertexBuffer != null){
+            if (this.GridVertexBuffer != null) {
                 this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
             }
             this.GridVertexBuffer = this.RenderctxGL.createBuffer();
@@ -473,12 +472,12 @@ module Pipe {
                 this.ResetGL();
             }
             this.GotoHUD();
-        } 
+        }
         GotoMainMenu() {
             this.GameState = 0;
             this.MainMenu = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
-            this.MainMenu.AddElement(new Button(this.MainMenu,this.PlaySize / 2, 100, 100, 50, "Start",30));//1
-            this.MainMenu.AddElement(new Button(this.MainMenu,this.PlaySize / 2, 200, 100, 50, "Credits"));//3
+            this.MainMenu.AddElement(new Button(this.MainMenu, this.PlaySize / 2, 100, 100, 50, "Start", 30));//1
+            this.MainMenu.AddElement(new Button(this.MainMenu, this.PlaySize / 2, 200, 100, 50, "Credits"));//3
         }
         GotoGameSelection() {
             this.GameState = 3;
@@ -502,8 +501,8 @@ module Pipe {
         GotoHUD() {
             this.GameState = 1;
             this.Hud = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
-            this.Hud.AddElement(new Button(this.Hud,this.PlaySize, 0, 100, 50, "Restart", 15));//1
-            this.Hud.AddElement(new Button(this.Hud,this.PlaySize, 50, 100, 50, "Main Menu", 15));//3
+            this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 0, 100, 50, "Restart", 15));//1
+            this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 50, 100, 50, "Main Menu", 15));//3
             this.Hud.AddElement(new Lable(this.PlaySize, 125, "Time:", 15, false));
             this.Hud.AddElement(new Lable(this.PlaySize, 150, "Time Number here", 15, false));//5
             this.Hud.AddElement(new Lable(this.PlaySize, 200, "Sand:", 15, false));
@@ -514,36 +513,36 @@ module Pipe {
         GotoLoseScreen() {
             this.GameState = 2;
             this.LoseScreen = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
-            this.LoseScreen.AddElement(new Button(this.LoseScreen,this.PlaySize, 0, 100, 50, "Restart", 15));//1
-            this.LoseScreen.AddElement(new Button(this.LoseScreen,this.PlaySize, 50, 100, 50, "Main Menu", 15));//3
+            this.LoseScreen.AddElement(new Button(this.LoseScreen, this.PlaySize, 0, 100, 50, "Restart", 15));//1
+            this.LoseScreen.AddElement(new Button(this.LoseScreen, this.PlaySize, 50, 100, 50, "Main Menu", 15));//3
             this.LoseScreen.AddElement(new Lable(50, 100, "You got rekt", 30, false));
             this.LoseScreen.AddElement(new Lable(50, 200, "You lasted a time of:" + this.Time.toString(), 30, false));//5
         }
         GotoCredits() {
             this.GameState = 4;
             this.Credits = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
-            this.Credits.AddElement(new Button(this.Credits,this.PlaySize, 0, 100, 50, "Main Menu", 15));//1
+            this.Credits.AddElement(new Button(this.Credits, this.PlaySize, 0, 100, 50, "Main Menu", 15));//1
             this.Credits.AddElement(new Lable(50, 100, "Sam: Programmer, designer", 30, false));
             this.Credits.AddElement(new Lable(50, 150, "Sacha: Designer, tester", 30, false));
             this.Credits.AddElement(new Lable(50, 200, "Nik: Skrub", 30, false));
         }
 
         public VallyGen(x, y, SeedX, SeedY, SeedZ) {
-            var val = Math.sin((x - (y / SeedX))/SeedZ) * SeedY;
+            var val = Math.sin((x - (y / SeedX)) / SeedZ) * SeedY;
             return val;
         }
-        public MountainGen(x, y, SeedX, SeedY,SeedZ) {
+        public MountainGen(x, y, SeedX, SeedY, SeedZ) {
             var val = 0;
             for (var i = 1; i < 10; ++i) {
                 val += Math.sin((x + SeedX) * i) / i * SeedY;
-                val += Math.sin(((y - SeedX)/SeedZ) * i) / i * SeedY;
+                val += Math.sin(((y - SeedX) / SeedZ) * i) / i * SeedY;
             }
             for (var i = 1; i < 10; ++i) {
                 val += Math.sin((x - SeedX) / i) * i * SeedY;
                 val += Math.sin(((y + SeedX) / SeedZ) / i) * i * SeedY;
             }
             val -= 10;
-            return Math.max(0,val);
+            return Math.max(0, val);
         }
         public SlopeGen(x, y) {
             return (2 - ((x / this.WorldSize) + (y / this.WorldSize))) * this.GroundHeight.MaxHeight / 2;
@@ -603,8 +602,8 @@ module Pipe {
             var Low = -1;
             for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
                 for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
-                    this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR,SeedZR))));
-                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY,SeedZ)));
+                    this.RockHeight.SetValueAt(x, y, Math.max(0, (this.MountainGen(x, y, SeedXR, SeedYR, SeedZR))));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY, SeedZ)));
                     if (this.GroundHeight.GetValueAt(x, y) < 0) {
                         this.GroundHeight.SetValueAt(x, y, 0);
                     }
@@ -633,7 +632,7 @@ module Pipe {
             this.HousesRemaining = 0;
             var InflowX = 10;
             var InflowY = 10;
-            this.WorldGenClassic(InflowX,InflowY);
+            this.WorldGenClassic(InflowX, InflowY);
             var Corners = [[0, this.WorldSize], [this.WorldSize, 0]];
             for (var i = 0; i < 2; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - 1));
@@ -714,7 +713,7 @@ module Pipe {
                         if (!(x - Offset[0] < 0 || y - Offset[1] < 0 || x - Offset[0] >= this.WaterHeight.SizeX || y - Offset[1] >= this.WaterHeight.SizeY)) {
                             VolumeIn += this.OutFlowMap[i].GetValueAt(x - Offset[0], y - Offset[1]);
                         }
-                        VolumeOut += this.OutFlowMap[i].GetValueAt(x,y);
+                        VolumeOut += this.OutFlowMap[i].GetValueAt(x, y);
                     }
                     var VolumeNet = this.DeltaTime * (VolumeIn - VolumeOut);
                     this.WaterHeightBuffer.SetValueAt(x, y, this.WaterHeight.GetValueAt(x, y) + VolumeNet);
@@ -770,8 +769,7 @@ module Pipe {
                             //exception
                             this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x, y));
                         }
-                        else
-                        {
+                        else {
                             this.SiltMapBuffer.SetValueAt(x, y, this.SiltMap.GetValueAt(x - OffsetX, y - OffsetY));
                         }
                     }
@@ -881,7 +879,7 @@ module Pipe {
         RenderBoarder(xo = 0) {
             var Boarder = 2;
             this.Guictx.beginPath();
-            this.Guictx.rect(1,1, this.GuiCanvas.width - (Boarder + xo), this.GuiCanvas.height-Boarder);
+            this.Guictx.rect(1, 1, this.GuiCanvas.width - (Boarder + xo), this.GuiCanvas.height - Boarder);
             this.Guictx.lineWidth = 2;
             this.Guictx.strokeStyle = 'black';
             this.Guictx.stroke();
@@ -942,7 +940,7 @@ module Pipe {
         }
 
         Render() {
-            if(this.CanRenderWebGL) {
+            if (this.CanRenderWebGL) {
                 this.RenderWebGL();
             }
             else {
@@ -957,7 +955,7 @@ module Pipe {
             //if (Button == 2) { DeltaHeight = HeightPerSecond; }
             if (MouseButton == 1) { //DeltaHeight = -HeightPerSecond; }
                 //document.getElementById("out").innerHTML = this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY).toString() + ":Water ," + this.GroundHeight.GetValueAt(MouseChunkX, MouseChunkY) + ":Ground," + (this.SiltMap.GetValueAt(MouseChunkX, MouseChunkY) / (this.SedimentCapacityConst * this.WaterHeight.GetValueAt(MouseChunkX, MouseChunkY))) + "%:Silts";
-                
+
             }
             var Direction = 0;
             if (MouseButton == 0) {
@@ -967,7 +965,7 @@ module Pipe {
                 Direction = 1.5;
             }
             if (Direction != 0) {
-                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction,0.3);
+                this.ManipulateSand(MouseChunkX, MouseChunkY, 10, Direction, 0.3);
             }
             //Button = -1;
         }
@@ -990,8 +988,7 @@ module Pipe {
             var Area = 0;
             var Factor = factor;
             var Depth = 0;
-            if (Direction > 0)
-            {
+            if (Direction > 0) {
                 Depth = 15;
             }
             var Min = -this.DistributionFunction(-SizeOffset, 0);
@@ -1038,8 +1035,7 @@ module Pipe {
             }
         }
         public MainLoop() {
-            switch(this.GameState)
-            {
+            switch (this.GameState) {
                 case 0://MainMenu
                     this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.MainMenu.Update(MouseX, MouseY, MouseButton);
@@ -1123,6 +1119,15 @@ module Pipe {
     var MouseButton = -1;
     console.log("world defined");
     var world = new World();
+    var MaxShaders = 2;
+    function LoadingShaders() {
+        --MaxShaders;
+        if (MaxShaders == 0) {
+            Start();
+        }
+    }
+    //evil
+    declare var $;
     $("#FragmentShader").load("FragmentShader.fs", function () {
         alert("Load was performed.");
     });
@@ -1146,5 +1151,7 @@ module Pipe {
     };
     var UpdateSpeed = 10;
     //world.MainLoop();
-    Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
+    function Start() {
+        Interval = setInterval(function () { world.MainLoop(); }, UpdateSpeed);
+    }
 }

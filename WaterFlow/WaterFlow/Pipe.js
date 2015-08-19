@@ -5,7 +5,6 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 /// <refrence href="WebGL.d.ts">
-/// <refrence href="Scripts/jquery-2.1.4.js">
 /*Version 1.3.1 rel
 Bug List:
 */
@@ -1165,6 +1164,15 @@ var Pipe;
     var MouseButton = -1;
     console.log("world defined");
     var world = new World();
+    var MaxShaders = 2;
+    function LoadingShaders() {
+        --MaxShaders;
+        if (MaxShaders == 0) {
+            Start();
+        }
+    }
+
+    
     $("#FragmentShader").load("FragmentShader.fs", function () {
         alert("Load was performed.");
     });
@@ -1189,8 +1197,10 @@ var Pipe;
     var UpdateSpeed = 10;
 
     //world.MainLoop();
-    Interval = setInterval(function () {
-        world.MainLoop();
-    }, UpdateSpeed);
+    function Start() {
+        Interval = setInterval(function () {
+            world.MainLoop();
+        }, UpdateSpeed);
+    }
 })(Pipe || (Pipe = {}));
 //# sourceMappingURL=Pipe.js.map
