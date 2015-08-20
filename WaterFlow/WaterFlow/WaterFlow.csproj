@@ -20,7 +20,6 @@
     <Content Include="app.css" />
     <Content Include="default.htm" />
     <Content Include="web.config" />
-    <Content Include="WebGL.js" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Pipe.ts" />
@@ -52,7 +51,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="OutFlow\" />
