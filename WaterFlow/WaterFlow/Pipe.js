@@ -296,9 +296,11 @@ var Pipe;
         function World() {
             this.CanRenderWebGL = true;
             this.GridVertexBuffer = null;
+            this.GridColourBuffer = null;
+            this.GridIndexBuffer = null;
             this.PickedUpSand = 0;
-            this.GridToCanvas = 4;
             this.GameState = 0;
+            this.GridToCanvas = 4;
             this.PlaySize = 500;
             this.WorldSize = this.PlaySize / this.GridToCanvas;
             this.StartTime = 100;
@@ -421,29 +423,59 @@ var Pipe;
             this.RenderctxGL.useProgram(this.ShaderProgram);
             this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
             this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
+            this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
+            this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
         };
         World.prototype.InitBuffers = function () {
+            var vertices = [
+                0, 1.0,
+                -1.0, -1.0,
+                1.0, -1.0
+            ];
+            var Colours = [
+                1, 0, 0.0, 0.0,
+                1.0, 0.5, 0.0,
+                1.0, -1.0, 0.0
+            ];
             if (this.GridVertexBuffer != null) {
                 this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
             }
+
             this.GridVertexBuffer = this.RenderctxGL.createBuffer();
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
-            var vertices = [
-                1.0, 1.0,
-                -1.0, 1.0,
-                1.0, -1.0,
-                -1.0, -1.0
-            ];
-            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(vertices), this.RenderctxGL.STATIC_DRAW);
+            var HalfPlaySize = this.PlaySize / 2;
             for (var x = 0; x < this.WorldSize; ++x) {
                 for (var y = 0; y < this.WorldSize; ++y) {
+                    //vertices.push((x * this.GridToCanvas/HalfPlaySize)-1, (y * this.GridToCanvas/HalfPlaySize)-1);
                 }
             }
+            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(vertices), this.RenderctxGL.STATIC_DRAW);
+
+            //
+            this.GridColourBuffer = this.RenderctxGL.createBuffer();
+            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
+            for (var x = 0; x < this.WorldSize; ++x) {
+                for (var y = 0; y < this.WorldSize; ++y) {
+                    //Colours.push((x * this.GridToCanvas / this.PlaySize), (y * this.GridToCanvas / this.PlaySize),1);
+                }
+            }
+            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(Colours), this.RenderctxGL.STATIC_DRAW);
         };
 
         World.prototype.InitGame = function () {
             this.PickedUpSand = 0;
             this.Time = 0;
+
+            if (this.CanRenderWebGL) {
+                this.GridToCanvas = 4;
+                this.PlaySize = 500;
+                this.WorldSize = (this.PlaySize / this.GridToCanvas) + 1;
+            } else {
+                this.GridToCanvas = 4;
+                this.PlaySize = 500;
+                this.WorldSize = this.PlaySize / this.GridToCanvas;
+            }
+
             this.GroundType = new Grid(this.WorldSize, this.WorldSize); //0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
             this.WaterHeight = new Grid(this.WorldSize, this.WorldSize);
             this.WaterHeightBuffer = new Grid(this.WorldSize, this.WorldSize);
@@ -981,7 +1013,9 @@ var Pipe;
             this.RenderctxGL.clear(this.RenderctxGL.COLOR_BUFFER_BIT | this.RenderctxGL.DEPTH_BUFFER_BIT);
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
             this.RenderctxGL.vertexAttribPointer(this.VertexPos, 2, this.RenderctxGL.FLOAT, false, 0, 0);
-            this.RenderctxGL.drawArrays(this.RenderctxGL.TRIANGLE_STRIP, 0, 4);
+            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
+            this.RenderctxGL.vertexAttribPointer(this.ColourPos, 3, this.RenderctxGL.FLOAT, false, 0, 0);
+            this.RenderctxGL.drawArrays(this.RenderctxGL.TRIANGLE_STRIP, 0, 3);
         };
         World.prototype.DeltaTimeCalculate = function () {
             var rtime = Date.prototype.getTime();

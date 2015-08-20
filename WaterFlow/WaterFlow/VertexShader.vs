@@ -1,6 +1,7 @@
 ﻿attribute vec2 VertexPosition;
-//varying vec2 vPosition;
+attribute vec4 VertexColour;
+varying vec3 vColour;
 void main(void) {
-    gl_Position = vec4(VertexPosition, 1.0, 1.0);
-    //vPosition = aPlotPosition;
+    gl_Position = vec4(VertexPosition, 0.0, 1.0);
+    vColour = vec3(VertexColour);
 }
