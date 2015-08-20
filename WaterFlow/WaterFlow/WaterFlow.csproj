@@ -28,7 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Home.pubxml" />
-    <Content Include="VertexShader.vs" />
+    <Content Include="Render\VertexShader.vs" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -41,7 +41,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="FragmentShader.fs" />
+    <None Include="Render\FragmentShader.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -53,6 +53,9 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="Settings.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="OutFlow\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
