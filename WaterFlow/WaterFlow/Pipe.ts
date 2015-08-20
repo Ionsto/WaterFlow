@@ -1,5 +1,5 @@
 /// <refrence href="WebGL.d.ts">
-/*Version 2
+/*Version 2.1
 Bug List:
 */
 module Pipe {
@@ -321,11 +321,11 @@ module Pipe {
         public GameSelectionCustom: Gui;//custom
         ///Sim values
         public DeltaTime = 1;
-        public GameTimeScale = 1/70;
         public Gravity = 10;
         public PipeLength = 1;
         public PipeCrossSection = 0.01;
-        public UpdatePerTick = 2;
+        public UpdatePerTick = 1;
+        public GameTimeScale = 1/70 * (2/this.UpdatePerTick);
         public SedimentDepositingConst = 1;
         public SedimentDissolvingConst = 1;
         public SedimentCapacityConst = 0.01;
@@ -493,7 +493,7 @@ module Pipe {
             this.Time = 0;
 
             if (this.CanRenderWebGL) {
-                this.GridToCanvas = 4;
+                this.GridToCanvas = 2;
                 this.PlaySize = 500;
                 this.WorldSize = (this.PlaySize / this.GridToCanvas) + 1;
             }
@@ -580,7 +580,7 @@ module Pipe {
         }
         GotoHUD() {
             this.GameState = 1;
-            this.Hud = new Gui(this.Guictx, this.PlaySize, this.PlaySize,false);
+            this.Hud = new Gui(this.Guictx, this.GuiCanvas.width, this.GuiCanvas.width,false);
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 0, 100, 50, "Restart", 15));//1
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 50, 100, 50, "Main Menu", 15));//3
             this.Hud.AddElement(new Lable(this.PlaySize, 125, "Time:", 15, false));
@@ -609,10 +609,14 @@ module Pipe {
         }
 
         public VallyGen(x, y, SeedX, SeedY, SeedZ) {
+            x *= this.GridToCanvas / 5;
+            y *= this.GridToCanvas / 5;
             var val = Math.sin((x - (y / SeedX)) / SeedZ) * SeedY;
             return val;
         }
         public MountainGen(x, y, SeedX, SeedY, SeedZ) {
+            x *= this.GridToCanvas / 5;
+            y *= this.GridToCanvas / 5;
             var val = 0;
             for (var i = 1; i < 10; ++i) {
                 val += Math.sin((x + SeedX) * i) / i * SeedY;
@@ -736,7 +740,7 @@ module Pipe {
                         var Factor = 100;
                         //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
-                        var Waves = 0.3 * (this.Time - this.StartTime);
+                        var Waves = 0.3 * (this.Time - this.StartTime) * this.GridToCanvas;
                         var IFlow = Waves;
                         //document.getElementById("Flow").innerHTML = IFlow.toString();
                         this.WaterHeight.AddValueAt(x, y, IFlow);

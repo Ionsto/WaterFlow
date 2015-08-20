@@ -5,7 +5,7 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 /// <refrence href="WebGL.d.ts">
-/*Version 2
+/*Version 2.1
 Bug List:
 */
 var Pipe;
@@ -332,11 +332,11 @@ var Pipe;
             this.MaxSand = 6000;
             ///Sim values
             this.DeltaTime = 1;
-            this.GameTimeScale = 1 / 70;
             this.Gravity = 10;
             this.PipeLength = 1;
             this.PipeCrossSection = 0.01;
-            this.UpdatePerTick = 2;
+            this.UpdatePerTick = 1;
+            this.GameTimeScale = 1 / 70 * (2 / this.UpdatePerTick);
             this.SedimentDepositingConst = 1;
             this.SedimentDissolvingConst = 1;
             this.SedimentCapacityConst = 0.01;
@@ -492,7 +492,7 @@ var Pipe;
             this.Time = 0;
 
             if (this.CanRenderWebGL) {
-                this.GridToCanvas = 4;
+                this.GridToCanvas = 2;
                 this.PlaySize = 500;
                 this.WorldSize = (this.PlaySize / this.GridToCanvas) + 1;
             } else {
@@ -579,7 +579,7 @@ var Pipe;
         };
         World.prototype.GotoHUD = function () {
             this.GameState = 1;
-            this.Hud = new Gui(this.Guictx, this.PlaySize, this.PlaySize, false);
+            this.Hud = new Gui(this.Guictx, this.GuiCanvas.width, this.GuiCanvas.width, false);
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 0, 100, 50, "Restart", 15)); //1
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 50, 100, 50, "Main Menu", 15)); //3
             this.Hud.AddElement(new Lable(this.PlaySize, 125, "Time:", 15, false));
@@ -608,10 +608,14 @@ var Pipe;
         };
 
         World.prototype.VallyGen = function (x, y, SeedX, SeedY, SeedZ) {
+            x *= this.GridToCanvas / 5;
+            y *= this.GridToCanvas / 5;
             var val = Math.sin((x - (y / SeedX)) / SeedZ) * SeedY;
             return val;
         };
         World.prototype.MountainGen = function (x, y, SeedX, SeedY, SeedZ) {
+            x *= this.GridToCanvas / 5;
+            y *= this.GridToCanvas / 5;
             var val = 0;
             for (var i = 1; i < 10; ++i) {
                 val += Math.sin((x + SeedX) * i) / i * SeedY;
@@ -737,7 +741,7 @@ var Pipe;
 
                         //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
-                        var Waves = 0.3 * (this.Time - this.StartTime);
+                        var Waves = 0.3 * (this.Time - this.StartTime) * this.GridToCanvas;
                         var IFlow = Waves;
 
                         //document.getElementById("Flow").innerHTML = IFlow.toString();
