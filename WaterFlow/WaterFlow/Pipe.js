@@ -303,11 +303,13 @@ var Pipe;
             this.WorldSize = this.PlaySize / this.GridToCanvas;
             this.StartTime = 100;
             this.Time = 0;
+            this.RealTime = 0;
             this.HighScore = 0;
             this.Map = 0;
             this.MaxSand = 6000;
             ///Sim values
             this.DeltaTime = 1;
+            this.GameTimeScale = 1 / 70;
             this.Gravity = 10;
             this.PipeLength = 1;
             this.PipeCrossSection = 0.01;
@@ -368,17 +370,18 @@ var Pipe;
         World.prototype.InitGL = function () {
             //Shaders e.g.
             this.InitShaders();
-            this.InitBuffers();
+            this.RenderctxGL.clearColor(0.0, 0.0, 0.0, 1.0);
+            this.RenderctxGL.enable(this.RenderctxGL.DEPTH_TEST);
         };
         World.prototype.ResetGL = function () {
             //Buffers e.g.
+            this.InitBuffers();
         };
         World.prototype.GetShader = function (gl, id) {
             var shaderScript = document.getElementById(id);
             if (!shaderScript) {
                 return null;
             }
-            alert(shaderScript.innerHTML);
             var str = "";
             var k = shaderScript.firstChild;
             while (k) {
@@ -406,8 +409,8 @@ var Pipe;
         };
 
         World.prototype.InitShaders = function () {
-            var fragmentShader = this.GetShader(this.RenderctxGL, "shader-fs");
-            var vertexShader = this.GetShader(this.RenderctxGL, "shader-vs");
+            var fragmentShader = this.GetShader(this.RenderctxGL, "FragmentShader");
+            var vertexShader = this.GetShader(this.RenderctxGL, "VertexShader");
             this.ShaderProgram = this.RenderctxGL.createProgram();
             this.RenderctxGL.attachShader(this.ShaderProgram, vertexShader);
             this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
@@ -416,7 +419,7 @@ var Pipe;
                 console.log("Could not initialise shaders");
             }
             this.RenderctxGL.useProgram(this.ShaderProgram);
-            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPos");
+            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
             this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
         };
         World.prototype.InitBuffers = function () {
@@ -424,6 +427,14 @@ var Pipe;
                 this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
             }
             this.GridVertexBuffer = this.RenderctxGL.createBuffer();
+            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
+            var vertices = [
+                1.0, 1.0,
+                -1.0, 1.0,
+                1.0, -1.0,
+                -1.0, -1.0
+            ];
+            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(vertices), this.RenderctxGL.STATIC_DRAW);
             for (var x = 0; x < this.WorldSize; ++x) {
                 for (var y = 0; y < this.WorldSize; ++y) {
                 }
@@ -882,7 +893,7 @@ var Pipe;
             }
         };
         World.prototype.Update = function () {
-            this.Time++;
+            this.Time += this.DeltaTime;
             for (var i = 0; i < this.UpdatePerTick; ++i) {
                 if (this.Time >= this.StartTime) {
                     this.UpdateWorldFlow();
@@ -967,8 +978,16 @@ var Pipe;
         };
         World.prototype.RenderWebGL = function () {
             ///
+            this.RenderctxGL.clear(this.RenderctxGL.COLOR_BUFFER_BIT | this.RenderctxGL.DEPTH_BUFFER_BIT);
+            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
+            this.RenderctxGL.vertexAttribPointer(this.VertexPos, 2, this.RenderctxGL.FLOAT, false, 0, 0);
+            this.RenderctxGL.drawArrays(this.RenderctxGL.TRIANGLE_STRIP, 0, 4);
         };
-
+        World.prototype.DeltaTimeCalculate = function () {
+            var rtime = Date.prototype.getTime();
+            this.DeltaTime = rtime - this.RealTime;
+            this.DeltaTime *= this.GameTimeScale; //This was due to issues
+        };
         World.prototype.Render = function () {
             if (this.CanRenderWebGL) {
                 this.RenderWebGL();
@@ -1162,8 +1181,6 @@ var Pipe;
     var MouseChunkX = 0;
     var MouseChunkY = 0;
     var MouseButton = -1;
-    console.log("world defined");
-    var world = new World();
     var MaxShaders = 2;
     function LoadingShaders() {
         --MaxShaders;
@@ -1174,30 +1191,34 @@ var Pipe;
 
     
     $("#FragmentShader").load("FragmentShader.fs", function () {
-        alert("Load was performed.");
+        console.log("FragmentShader loaded");
+        LoadingShaders();
     });
-    $("#FragmentShader").load("FragmentShader.fs", function () {
-        alert("Load was performed.");
+    $("#VertexShader").load("VertexShader.vs", function () {
+        console.log("VertexShader loaded");
+        LoadingShaders();
     });
-    var Interval = 0;
-    world.GuiCanvas.onmousemove = function (event) {
-        MouseX = event.pageX - world.GuiCanvas.offsetLeft;
-        MouseY = event.pageY - world.GuiCanvas.offsetTop;
-        MouseChunkX = Math.floor((event.pageX - world.GuiCanvas.offsetLeft) / world.GridToCanvas);
-        MouseChunkY = Math.floor((event.pageY - world.GuiCanvas.offsetTop) / world.GridToCanvas);
-    };
-    world.GuiCanvas.onmousedown = function (event) {
-        MouseButton = event.button;
-        return true;
-    };
-    world.GuiCanvas.onmouseup = function (event) {
-        MouseButton = -1;
-        return true;
-    };
     var UpdateSpeed = 10;
 
     //world.MainLoop();
     function Start() {
+        console.log("world defined");
+        var world = new World();
+        var Interval = 0;
+        world.GuiCanvas.onmousemove = function (event) {
+            MouseX = event.pageX - world.GuiCanvas.offsetLeft;
+            MouseY = event.pageY - world.GuiCanvas.offsetTop;
+            MouseChunkX = Math.floor((event.pageX - world.GuiCanvas.offsetLeft) / world.GridToCanvas);
+            MouseChunkY = Math.floor((event.pageY - world.GuiCanvas.offsetTop) / world.GridToCanvas);
+        };
+        world.GuiCanvas.onmousedown = function (event) {
+            MouseButton = event.button;
+            return true;
+        };
+        world.GuiCanvas.onmouseup = function (event) {
+            MouseButton = -1;
+            return true;
+        };
         Interval = setInterval(function () {
             world.MainLoop();
         }, UpdateSpeed);

@@ -19,8 +19,8 @@
   <ItemGroup>
     <Content Include="app.css" />
     <Content Include="default.htm" />
-    <Content Include="packages.config" />
     <Content Include="web.config" />
+    <Content Include="WebGL.js" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Pipe.ts" />
