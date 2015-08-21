@@ -542,22 +542,33 @@ var Pipe;
             this.RenderctxGL.useProgram(this.ShaderProgram);
             this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
             this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
-            this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
-            this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
-            this.TexturePos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
-            this.RenderctxGL.enableVertexAttribArray(this.TexturePos);
 
-            var Size = this.WorldSize;
+            //this.TexturePos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
+            //this.RenderctxGL.enableVertexAttribArray(this.TexturePos);
+            var Size = 16;
 
             //alert(Size);
             //this.RenderctxGL.enable(this.RenderctxGL.TEXTURE_2D);
-            this.TextureData = new Uint8Array(Size * Size);
+            this.TextureDataWidth = 1;
+            this.TextureDataHeight = 1;
+            this.TextureData = new Uint8Array(Size * Size * 4);
             this.ColourTexture = this.RenderctxGL.createTexture();
             this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
-            this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
-            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MAG_FILTER, this.RenderctxGL.LINEAR);
-            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.LINEAR_MIPMAP_NEAREST);
-            //this.RenderctxGL.generateMipmap(this.RenderctxGL.TEXTURE_2D);
+            for (var i = 0; i < Size * Size; ++i) {
+                var id = i * 4;
+                this.TextureData[i] = 255;
+                this.TextureData[i + 1] = 0;
+                this.TextureData[i + 2] = 255;
+                this.TextureData[i + 3] = 255;
+            }
+            this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+            //this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, this.TextureDataWidth, this.TextureDataHeight, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
+            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.LINEAR);
+            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_WRAP_S, this.RenderctxGL.CLAMP_TO_EDGE);
+            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_WRAP_T, this.RenderctxGL.CLAMP_TO_EDGE);
+            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MAG_FILTER, this.RenderctxGL.NEAREST);
+            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.NEAREST);
             //this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, null);
         };
         World.prototype.InitBuffers = function () {
@@ -578,16 +589,18 @@ var Pipe;
             }
             this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(Vertices), this.RenderctxGL.STATIC_DRAW);
             this.GridVertexBufferSize = Vertices.length;
-            this.GridColourBuffer = this.RenderctxGL.createBuffer();
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
-            for (var x = 0; x < this.WorldSize; ++x) {
-                for (var y = 0; y < this.WorldSize; ++y) {
-                    Colours.push(0, 0, 1, 0);
+            if (this.ShaderType != 2) {
+                this.GridColourBuffer = this.RenderctxGL.createBuffer();
+                this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
+                for (var x = 0; x < this.WorldSize; ++x) {
+                    for (var y = 0; y < this.WorldSize; ++y) {
+                        Colours.push(0, 0, 1, 0);
+                    }
+                    this.ColourArray = new Float32Array(Colours);
+                    this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
+                    this.GridColourBufferSize = Colours.length;
                 }
             }
-            this.ColourArray = new Float32Array(Colours);
-            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
-            this.GridColourBufferSize = Colours.length;
             this.GridIndexBuffer = this.RenderctxGL.createBuffer();
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, this.GridIndexBuffer);
             for (var x = 0; x < this.WorldSize - 1; ++x) {
@@ -1186,14 +1199,11 @@ var Pipe;
         };
         World.prototype.RenderWebGL = function () {
             //Update Colour
-            if (this.ShaderType == 2) {
-                this.RenderctxGL.activeTexture(this.RenderctxGL.TEXTURE0);
-                this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
-                this.RenderctxGL.uniform1i(this.RenderctxGL.getUniformLocation(this.ShaderProgram, "uSampler"), 0);
-            }
+            var Size = 4;
+
             for (var x = 0; x < this.WorldSize; ++x) {
                 for (var y = 0; y < this.WorldSize; ++y) {
-                    var id = (y + (x * this.WorldSize)) * 4;
+                    var id = (y + (x * this.WorldSize)) * Size;
                     var BrightnessDec = Math.min(1, Math.max(0.1, (this.GroundHeight.GetValueAt(x, y) + this.RockHeight.GetValueAt(x, y)) / (this.GroundHeight.MaxHeight + this.RockHeight.MaxHeight)));
                     var R = BrightnessDec;
                     var G = BrightnessDec;
@@ -1231,7 +1241,8 @@ var Pipe;
                         this.TextureData[id] = R;
                         this.TextureData[id + 1] = G;
                         this.TextureData[id + 2] = B;
-                        this.TextureData[id + 3] = this.GroundType.GetValueAt(x, y);
+                        this.TextureData[id + 3] = 255;
+                        //this.TextureData[id + 3] = this.GroundType.GetValueAt(x, y);
                     } else {
                         this.ColourArray[id] = R;
                         this.ColourArray[id + 1] = G;
@@ -1241,7 +1252,7 @@ var Pipe;
                 }
             }
             if (this.ShaderType == 2) {
-                this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
+                //this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, this.TextureDataWidth, this.TextureDataHeight,0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
             } else {
                 this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
             }
@@ -1253,6 +1264,11 @@ var Pipe;
             if (this.ShaderType != 2) {
                 this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
                 this.RenderctxGL.vertexAttribPointer(this.ColourPos, 4, this.RenderctxGL.FLOAT, false, 0, 0);
+            }
+            if (this.ShaderType == 2) {
+                this.RenderctxGL.activeTexture(this.RenderctxGL.TEXTURE0);
+                this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
+                this.RenderctxGL.uniform1i(this.RenderctxGL.getUniformLocation(this.ShaderProgram, "uSampler"), 0);
             }
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, this.GridIndexBuffer);
             this.RenderctxGL.drawElements(this.RenderctxGL.TRIANGLES, this.GridIndexBufferSize, this.RenderctxGL.UNSIGNED_SHORT, 0);
