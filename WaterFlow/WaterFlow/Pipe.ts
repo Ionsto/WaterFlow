@@ -349,6 +349,7 @@ module Pipe {
         ColourPos: number;
         TexturePos: number;
         ColourTexture: WebGLTexture;
+        TextureData : Uint8Array;
         GridVertexBufferSize = 0;
         GridVertexBuffer: WebGLBuffer = null;
         GridColourBufferSize = 0;
@@ -356,6 +357,7 @@ module Pipe {
         GridIndexBufferSize = 0;
         GridIndexBuffer: WebGLBuffer = null;
         ColourArray: Float32Array;
+        ShaderType = 0;
 
         public PickedUpSand = 0;
         public GameState = 0;
@@ -375,6 +377,9 @@ module Pipe {
         public Credits: Gui;
         public GameSelection: Gui;//Normal
         public GameSelectionCustom: Gui;//custom
+        public SandDiggingSize = 40;
+        public SandDiggingSpeed = 1;
+        public SandPlacingSpeed = 1;
         ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
@@ -441,7 +446,8 @@ module Pipe {
         InitGL() {
             //Shaders e.g.
             //this.InitShaderSmooth();
-            this.InitShaderStaggerd();
+            this.InitShaderContoured();
+            //this.InitShaderStaggerd();
             this.RenderctxGL.clearColor(0.0, 0.0, 0.0, 1.0);
             this.RenderctxGL.enable(this.RenderctxGL.DEPTH_TEST);
 
@@ -482,6 +488,7 @@ module Pipe {
         }
 
         InitShaderSmooth() {
+            this.ShaderType = 0;
             var fragmentShader = this.GetShader(this.RenderctxGL, "FragmentShader");
             var vertexShader = this.GetShader(this.RenderctxGL, "VertexShader");
             this.ShaderProgram = this.RenderctxGL.createProgram();
@@ -497,7 +504,25 @@ module Pipe {
             this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
             this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
         }
+        InitShaderContoured() {
+            this.ShaderType = 1;
+            var fragmentShader = this.GetShader(this.RenderctxGL, "ContoursFragShader");
+            var vertexShader = this.GetShader(this.RenderctxGL, "ContoursVertShader");
+            this.ShaderProgram = this.RenderctxGL.createProgram();
+            this.RenderctxGL.attachShader(this.ShaderProgram, vertexShader);
+            this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
+            this.RenderctxGL.linkProgram(this.ShaderProgram);
+            if (!this.RenderctxGL.getProgramParameter(this.ShaderProgram, this.RenderctxGL.LINK_STATUS)) {
+                console.log("Could not initialise shaders");
+            }
+            this.RenderctxGL.useProgram(this.ShaderProgram);
+            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
+            this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
+            this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
+            this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
+        }
         InitShaderStaggerd() {
+            this.ShaderType = 2;
             var fragmentShader = this.GetShader(this.RenderctxGL, "StaggerdFragShader");
             var vertexShader = this.GetShader(this.RenderctxGL, "StaggerdVertShader");
             this.ShaderProgram = this.RenderctxGL.createProgram();
@@ -514,14 +539,17 @@ module Pipe {
             this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
             this.TexturePos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
             this.RenderctxGL.enableVertexAttribArray(this.TexturePos);
-            var Size = Math.pow(2, Math.ceil(Math.log(this.WorldSize) / Math.log(2)));
-            var image = new Image(Size, Size);
+
+            var Size = this.WorldSize;//Math.pow(2, Math.ceil(Math.log(this.WorldSize) / Math.log(2)));
+            //alert(Size);
+            this.RenderctxGL.enable(this.RenderctxGL.TEXTURE_2D);
+            this.TextureData = new Uint8Array(Size * Size);
             this.ColourTexture = this.RenderctxGL.createTexture();
             this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
-            this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, image);
+            this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
             this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MAG_FILTER, this.RenderctxGL.LINEAR);
-            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.LINEAR_MIPMAP_NEAREST);
-            this.RenderctxGL.generateMipmap(this.RenderctxGL.TEXTURE_2D);
+            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.LINEAR_MIPMAP_NEAREST);
+            //this.RenderctxGL.generateMipmap(this.RenderctxGL.TEXTURE_2D);
             //this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, null);
         }
         InitBuffers() {
@@ -1140,6 +1168,11 @@ module Pipe {
         }
         RenderWebGL() {
             //Update Colour
+            if (this.ShaderType == 2) {
+                this.RenderctxGL.activeTexture(this.RenderctxGL.TEXTURE0);
+                this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
+                this.RenderctxGL.uniform1i(this.RenderctxGL.getUniformLocation(this.ShaderProgram, "uSampler"), 0);
+            }
             for (var x = 0; x < this.WorldSize; ++x) {
                 for (var y = 0; y < this.WorldSize; ++y) {
                     var id = (y + (x * this.WorldSize)) * 4;
@@ -1170,20 +1203,34 @@ module Pipe {
                     if (R > 1) { R = 1; }
                     if (G > 1) { G = 1; }
                     if (B > 1) { B = 1; }
-                    this.ColourArray[id] = R;
-                    this.ColourArray[id + 1] = G;
-                    this.ColourArray[id + 2] = B;
-                    this.ColourArray[id + 3] = this.GroundType.GetValueAt(x, y);
+                    if (this.ShaderType == 2) {
+                        this.TextureData[id] = R;
+                        this.TextureData[id + 1] = G;
+                        this.TextureData[id + 2] = B;
+                        this.TextureData[id + 3] = this.GroundType.GetValueAt(x, y);
+                    }
+                    else {
+                        this.ColourArray[id] = R;
+                        this.ColourArray[id + 1] = G;
+                        this.ColourArray[id + 2] = B;
+                        this.ColourArray[id + 3] = this.GroundType.GetValueAt(x, y);
+                    }
                 }
             }
-            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
-            
+            if (this.ShaderType == 2) {
+                this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
+            }
+            else {
+                this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
+            }
             //Render
             this.RenderctxGL.clear(this.RenderctxGL.COLOR_BUFFER_BIT | this.RenderctxGL.DEPTH_BUFFER_BIT);
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
             this.RenderctxGL.vertexAttribPointer(this.VertexPos, 2, this.RenderctxGL.FLOAT, false, 0, 0);
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
-            this.RenderctxGL.vertexAttribPointer(this.ColourPos, 4, this.RenderctxGL.FLOAT, false, 0, 0);
+            if (this.ShaderType != 2) {
+                this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
+                this.RenderctxGL.vertexAttribPointer(this.ColourPos, 4, this.RenderctxGL.FLOAT, false, 0, 0);
+            }
             this.RenderctxGL.bindBuffer(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, this.GridIndexBuffer);
             this.RenderctxGL.drawElements(this.RenderctxGL.TRIANGLES,this.GridIndexBufferSize,this.RenderctxGL.UNSIGNED_SHORT,0 );
             //this.RenderctxGL.drawArrays(this.RenderctxGL.TRIANGLE_STRIP, 0, 3);
@@ -1215,13 +1262,13 @@ module Pipe {
             }
             var Direction = 0;
             if (MouseButton == 0) {
-                Direction = -1;
+                Direction = -this.SandDiggingSpeed;
             }
             if (MouseButton == 2) {
-                Direction = 1;
+                Direction = this.SandPlacingSpeed;
             }
             if (Direction != 0) {
-                this.ManipulateSand(MouseChunkX, MouseChunkY, Math.round(32/this.GridToCanvas), Direction, 0.3);
+                this.ManipulateSand(MouseChunkX, MouseChunkY, Math.round(this.SandDiggingSize/this.GridToCanvas), Direction, 0.7);
             }
             //Button = -1;
         }
