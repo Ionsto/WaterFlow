@@ -454,9 +454,8 @@ var Pipe;
         World.prototype.InitGL = function () {
             //Shaders e.g.
             //this.InitShaderSmooth();
-            this.InitShaderContoured();
-
-            //this.InitShaderStaggerd();
+            //this.InitShaderContoured();
+            this.InitShaderStaggerd();
             this.RenderctxGL.clearColor(0.0, 0.0, 0.0, 1.0);
             this.RenderctxGL.enable(this.RenderctxGL.DEPTH_TEST);
         };
@@ -551,7 +550,7 @@ var Pipe;
             var Size = this.WorldSize;
 
             //alert(Size);
-            this.RenderctxGL.enable(this.RenderctxGL.TEXTURE_2D);
+            //this.RenderctxGL.enable(this.RenderctxGL.TEXTURE_2D);
             this.TextureData = new Uint8Array(Size * Size);
             this.ColourTexture = this.RenderctxGL.createTexture();
             this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
