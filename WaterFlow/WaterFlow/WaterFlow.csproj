@@ -24,6 +24,7 @@
   <ItemGroup>
     <TypeScriptCompile Include="Pipe.ts" />
     <TypeScriptCompile Include="WebGL.d.ts" />
+    <TypeScriptCompile Include="WebGLGame.ts" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Home.pubxml" />

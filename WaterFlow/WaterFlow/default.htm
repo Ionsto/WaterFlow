@@ -12,17 +12,21 @@
         uniform sampler2D uSampler;
         varying highp vec2 TextureLocation;
         void main(void) {
-            gl_FragColor = vec4(texture2D(uSampler,TextureLocation),1);
+            gl_FragColor = texture2D(uSampler,TextureLocation);
         }
     </script>
     <script id="StaggerdVertShader" type="x-shader/x-vertex" style="display: none;">
         precision mediump float;
         attribute vec2 VertexPosition;      
         varying highp vec2 TextureLocation;
+        float round(float x)
+        {
+            return floor(x+0.5);
+        }
         void main(void) {
             gl_Position = vec4(VertexPosition, 0.0, 1.0);        
-            TextureLocation.s = (VertexPosition.x + 1.0)/2.0;        
-            TextureLocation.t = (VertexPosition.y + 1.0)/2.0;
+            TextureLocation.s = ((VertexPosition.x) + 1.0)/2.0;        
+            TextureLocation.t = ((VertexPosition.y*-1.0) + 1.0)/2.0;
         }
     </script>
     <script id="ContoursFragShader" type="x-shader/x-fragment" style="display: none;">
@@ -76,6 +80,7 @@
     <script src="jquery-2.1.4.min.js"></script>
     <canvas id="GuiCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 1;"></canvas>
     <canvas id="RenderCanvas" width="500" height="500" oncontextmenu="return false;" style="position: absolute; left: 10px; top: 10px; z-index: 0;"></canvas>
+    <script src="WebGLGame.js"></script>
     <script src="Pipe.js"></script>
 </body>
 </html>

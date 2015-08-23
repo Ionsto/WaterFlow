@@ -4,7 +4,8 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-/// <refrence href="WebGL.d.ts">
+/// <reference path="WebGL.d.ts"/>
+/// <reference path="WebGLGame.ts"/>
 /*Version 2.2
 Bug List:
 */
@@ -78,6 +79,7 @@ var Pipe;
         };
         return Grid;
     })();
+    Pipe.Grid = Grid;
     ;
     var Village = (function () {
         function Village(x, y, sx, sy, world) {
@@ -132,6 +134,7 @@ var Pipe;
         };
         return Village;
     })();
+    Pipe.Village = Village;
     var Element = (function () {
         function Element(z) {
             if (typeof z === "undefined") { z = 0; }
@@ -165,14 +168,17 @@ var Pipe;
             this.SizeX = sx;
             this.SizeY = sy;
             this.Centered = c;
+            this.Text = new Lable(x, y, txt, fsize, this.Centered, z + 1, false, sy);
+
             var lx = x + sx / 2;
             var ly = y + sy / 2;
             if (!this.Centered) {
                 lx = x + 10;
-                ly = (y + sy / 2) + (fsize * 0.5 / 2);
+                ly = (y + sy / 2) + (fsize / 2);
             }
-            this.Text = new Lable(lx, ly, txt, fsize, this.Centered);
-            this.Text.Z = z + 1;
+
+            //this.Text = new Lable(lx, ly, txt, fsize, this.Centered);
+            //this.Text.Z = z + 1;
             gui.AddElement(this.Text);
         }
         Button.prototype.Remove = function (gui) {
@@ -196,6 +202,7 @@ var Pipe;
                     if (this.State == 0) {
                         this.State = 1;
                     }
+                    gui.Button = -1;
                 } else {
                     if (this.State == 1) {
                         this.State = 2;
@@ -211,32 +218,71 @@ var Pipe;
     })(Element);
     var Lable = (function (_super) {
         __extends(Lable, _super);
-        function Lable(x, y, txt, size, c, z) {
+        function Lable(x, y, txt, size, c, z, d, sy) {
             if (typeof size === "undefined") { size = 30; }
             if (typeof c === "undefined") { c = true; }
             if (typeof z === "undefined") { z = 0; }
+            if (typeof d === "undefined") { d = false; }
+            if (typeof sy === "undefined") { sy = -1; }
             _super.call(this, z);
             this.X = 0;
             this.Y = 0;
+            this.SY = 0;
             this.Text = "";
+            this.Dynamic = false;
             this.FontSize = 30;
             this.Centered = true;
             this.X = x;
             this.Y = y;
+            this.SY = sy;
             this.Text = txt;
             this.FontSize = size;
             this.Centered = c;
+            this.Dynamic = d;
+            if (this.SY == -1) {
+                this.SY = this.FontSize * 2;
+            }
+            if (!this.Dynamic) {
+                this.TextImage = document.createElement("img");
+                this.ChangeText(txt);
+            }
         }
-        Lable.prototype.Render = function (gui) {
+        Lable.prototype.RenderText = function (gui) {
             gui.ctx.fillStyle = "#000000";
             gui.ctx.font = this.FontSize.toString() + "px Arial";
             var x = this.X;
             var y = this.Y;
             if (this.Centered) {
                 x = this.X - ((this.Text.length - 1) * (this.FontSize / 4));
-                y = this.Y + (this.FontSize * 0.5 / 2);
+                y = this.Y + (this.FontSize / 4);
             }
             gui.ctx.fillText(this.Text, x, y);
+        };
+        Lable.prototype.RenderImage = function (gui) {
+            gui.ctx.drawImage(this.TextImage, this.X, this.Y);
+        };
+        Lable.prototype.Render = function (gui) {
+            if (this.Dynamic) {
+                this.RenderText(gui);
+            } else {
+                this.RenderImage(gui);
+            }
+        };
+        Lable.prototype.ChangeText = function (txt) {
+            this.Text = txt;
+            var Canvas = document.createElement("canvas");
+            Canvas.width = this.Text.length * this.FontSize;
+            Canvas.height = this.SY;
+            var ctx = Canvas.getContext("2d");
+            ctx.fillStyle = "#000000";
+            ctx.font = this.FontSize.toString() + "px Arial";
+            var x = 0;
+            var y = this.SY;
+            if (this.Centered) {
+                //y = (this.FontSize/2);
+            }
+            ctx.fillText(this.Text, x, y);
+            this.TextImage.src = Canvas.toDataURL("image/png");
         };
         return Lable;
     })(Element);
@@ -258,11 +304,12 @@ var Pipe;
         DropDown.prototype.Drop = function (gui) {
             this.Droped = true;
             for (var i = 0; i < this.OptionsNonDisplay.length; ++i) {
-                this.OptionButtons.push(new Button(gui, this.X, this.Y + (this.SizeY * (i + 1)), this.SizeX, this.SizeY, this.OptionsNonDisplay[i], this.Text.FontSize, this.Centered, this.Z + 2));
+                this.OptionButtons.push(new Button(gui, this.X, this.Y + (this.SizeY * (i + 1)), this.SizeX, this.SizeY, this.OptionsNonDisplay[i], this.Text.FontSize, this.Centered, this.Z));
                 gui.AddElement(this.OptionButtons[i]);
             }
         };
         DropDown.prototype.Select = function (Selected, gui) {
+            gui.Button = -1;
             for (var i = 0; i < this.OptionButtons.length; ++i) {
                 gui.RemoveElement(this.OptionButtons[i]);
             }
@@ -289,7 +336,7 @@ var Pipe;
             _super.prototype.Update.call(this, gui);
             if (this.Droped) {
                 for (var i = 0; i < this.OptionButtons.length; ++i) {
-                    this.OptionButtons[i].Update(gui);
+                    //this.OptionButtons[i].Update(gui);
                     if (this.OptionButtons[i].State == 2) {
                         this.Select(this.Options.indexOf(this.OptionButtons[i].Text.Text), gui);
                     }
@@ -339,9 +386,11 @@ var Pipe;
             this.MouseY = my;
             this.Button = b;
             if (this.Active) {
-                for (var i = 0; i < this.Elements.length; ++i) {
-                    if (this.Elements[i].Active) {
-                        this.Elements[i].Update(this);
+                for (var i = this.RenderList.length - 1; i >= 0; --i) {
+                    for (var j = 0; j < this.RenderList[i].length; ++j) {
+                        if (this.RenderList[i][j].Active) {
+                            this.RenderList[i][j].Update(this);
+                        }
                     }
                 }
             }
@@ -368,13 +417,6 @@ var Pipe;
         function World() {
             this.WillRenderWebGL = true;
             this.CanRenderWebGL = true;
-            this.GridVertexBufferSize = 0;
-            this.GridVertexBuffer = null;
-            this.GridColourBufferSize = 0;
-            this.GridColourBuffer = null;
-            this.GridIndexBufferSize = 0;
-            this.GridIndexBuffer = null;
-            this.ShaderType = 0;
             this.PickedUpSand = 0;
             this.GameState = 0;
             this.GridToCanvas = 5;
@@ -432,188 +474,13 @@ var Pipe;
             this.RenderCanvas.width = (this.PlaySize);
             this.RenderCanvas.height = (this.PlaySize);
             this.Guictx = this.GuiCanvas.getContext("2d");
-            this.InitRenderCanvas();
-            if (this.WillRenderWebGL) {
-                this.InitGL();
-            }
-        };
-        World.prototype.InitRenderCanvas = function () {
-            try  {
-                this.RenderctxGL = this.RenderCanvas.getContext("webgl") || this.RenderCanvas.getContext("experimental-webgl");
-                this.RenderctxGL.viewport(0, 0, this.RenderCanvas.width, this.RenderCanvas.height);
-            } catch (e) {
-                console.log(e);
-            }
-            if (!this.RenderctxGL) {
-                console.log("Could not initialise WebGL");
+            this.webGLSystem = new WebGLGame.WebGLGame(this);
+            this.webGLSystem.InitGL();
+            if (!this.WillRenderWebGL) {
                 this.RenderctxHTML = this.RenderCanvas.getContext("2d");
-                this.CanRenderWebGL = false;
-                this.WillRenderWebGL = false;
+                //this.InitGL();
             }
         };
-        World.prototype.InitGL = function () {
-            //Shaders e.g.
-            //this.InitShaderSmooth();
-            //this.InitShaderContoured();
-            this.InitShaderStaggerd();
-            this.RenderctxGL.clearColor(0.0, 0.0, 0.0, 1.0);
-            this.RenderctxGL.enable(this.RenderctxGL.DEPTH_TEST);
-        };
-        World.prototype.ResetGL = function () {
-            //Buffers e.g.
-            this.InitBuffers();
-        };
-        World.prototype.GetShader = function (gl, id) {
-            var shaderScript = document.getElementById(id);
-            if (!shaderScript) {
-                return null;
-            }
-            var str = "";
-            var k = shaderScript.firstChild;
-            while (k) {
-                if (k.nodeType == 3) {
-                    str += k.textContent;
-                }
-                k = k.nextSibling;
-            }
-            var shader;
-            if (shaderScript.type == "x-shader/x-fragment") {
-                shader = gl.createShader(gl.FRAGMENT_SHADER);
-            } else if (shaderScript.type == "x-shader/x-vertex") {
-                shader = gl.createShader(gl.VERTEX_SHADER);
-            } else {
-                return null;
-            }
-            console.log("Compiling Shader " + shaderScript.type);
-            gl.shaderSource(shader, str);
-            gl.compileShader(shader);
-            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.log(gl.getShaderInfoLog(shader));
-                return null;
-            }
-            return shader;
-        };
-
-        World.prototype.InitShaderSmooth = function () {
-            this.ShaderType = 0;
-            var fragmentShader = this.GetShader(this.RenderctxGL, "FragmentShader");
-            var vertexShader = this.GetShader(this.RenderctxGL, "VertexShader");
-            this.ShaderProgram = this.RenderctxGL.createProgram();
-            this.RenderctxGL.attachShader(this.ShaderProgram, vertexShader);
-            this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
-            this.RenderctxGL.linkProgram(this.ShaderProgram);
-            if (!this.RenderctxGL.getProgramParameter(this.ShaderProgram, this.RenderctxGL.LINK_STATUS)) {
-                console.log("Could not initialise shaders");
-            }
-            this.RenderctxGL.useProgram(this.ShaderProgram);
-            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
-            this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
-            this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
-            this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
-        };
-        World.prototype.InitShaderContoured = function () {
-            this.ShaderType = 1;
-            var fragmentShader = this.GetShader(this.RenderctxGL, "ContoursFragShader");
-            var vertexShader = this.GetShader(this.RenderctxGL, "ContoursVertShader");
-            this.ShaderProgram = this.RenderctxGL.createProgram();
-            this.RenderctxGL.attachShader(this.ShaderProgram, vertexShader);
-            this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
-            this.RenderctxGL.linkProgram(this.ShaderProgram);
-            if (!this.RenderctxGL.getProgramParameter(this.ShaderProgram, this.RenderctxGL.LINK_STATUS)) {
-                console.log("Could not initialise shaders");
-            }
-            this.RenderctxGL.useProgram(this.ShaderProgram);
-            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
-            this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
-            this.ColourPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
-            this.RenderctxGL.enableVertexAttribArray(this.ColourPos);
-        };
-        World.prototype.InitShaderStaggerd = function () {
-            this.ShaderType = 2;
-            var fragmentShader = this.GetShader(this.RenderctxGL, "StaggerdFragShader");
-            var vertexShader = this.GetShader(this.RenderctxGL, "StaggerdVertShader");
-            this.ShaderProgram = this.RenderctxGL.createProgram();
-            this.RenderctxGL.attachShader(this.ShaderProgram, vertexShader);
-            this.RenderctxGL.attachShader(this.ShaderProgram, fragmentShader);
-            this.RenderctxGL.linkProgram(this.ShaderProgram);
-            if (!this.RenderctxGL.getProgramParameter(this.ShaderProgram, this.RenderctxGL.LINK_STATUS)) {
-                console.log("Could not initialise shaders");
-            }
-            this.RenderctxGL.useProgram(this.ShaderProgram);
-            this.VertexPos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexPosition");
-            this.RenderctxGL.enableVertexAttribArray(this.VertexPos);
-
-            //this.TexturePos = this.RenderctxGL.getAttribLocation(this.ShaderProgram, "VertexColour");
-            //this.RenderctxGL.enableVertexAttribArray(this.TexturePos);
-            var Size = 16;
-
-            //alert(Size);
-            //this.RenderctxGL.enable(this.RenderctxGL.TEXTURE_2D);
-            this.TextureDataWidth = 1;
-            this.TextureDataHeight = 1;
-            this.TextureData = new Uint8Array(Size * Size * 4);
-            this.ColourTexture = this.RenderctxGL.createTexture();
-            this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
-            for (var i = 0; i < Size * Size; ++i) {
-                var id = i * 4;
-                this.TextureData[i] = 255;
-                this.TextureData[i + 1] = 0;
-                this.TextureData[i + 2] = 255;
-                this.TextureData[i + 3] = 255;
-            }
-            this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, 1, 1, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-
-            //this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, this.TextureDataWidth, this.TextureDataHeight, 0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
-            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.LINEAR);
-            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_WRAP_S, this.RenderctxGL.CLAMP_TO_EDGE);
-            //this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_WRAP_T, this.RenderctxGL.CLAMP_TO_EDGE);
-            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MAG_FILTER, this.RenderctxGL.NEAREST);
-            this.RenderctxGL.texParameteri(this.RenderctxGL.TEXTURE_2D, this.RenderctxGL.TEXTURE_MIN_FILTER, this.RenderctxGL.NEAREST);
-            //this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, null);
-        };
-        World.prototype.InitBuffers = function () {
-            var Vertices = [];
-            var Colours = [];
-            var Indicies = [];
-            if (this.GridVertexBuffer != null) {
-                this.RenderctxGL.deleteBuffer(this.GridVertexBuffer);
-            }
-
-            this.GridVertexBuffer = this.RenderctxGL.createBuffer();
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
-            var HSize = (this.WorldSize - 1) / 2;
-            for (var x = 0; x < this.WorldSize; ++x) {
-                for (var y = 0; y < this.WorldSize; ++y) {
-                    Vertices.push((x / HSize) - 1, 1 - (y / HSize));
-                }
-            }
-            this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, new Float32Array(Vertices), this.RenderctxGL.STATIC_DRAW);
-            this.GridVertexBufferSize = Vertices.length;
-            if (this.ShaderType != 2) {
-                this.GridColourBuffer = this.RenderctxGL.createBuffer();
-                this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
-                for (var x = 0; x < this.WorldSize; ++x) {
-                    for (var y = 0; y < this.WorldSize; ++y) {
-                        Colours.push(0, 0, 1, 0);
-                    }
-                    this.ColourArray = new Float32Array(Colours);
-                    this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
-                    this.GridColourBufferSize = Colours.length;
-                }
-            }
-            this.GridIndexBuffer = this.RenderctxGL.createBuffer();
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, this.GridIndexBuffer);
-            for (var x = 0; x < this.WorldSize - 1; ++x) {
-                for (var y = 0; y < this.WorldSize - 1; ++y) {
-                    var pos = x + (y * this.WorldSize);
-                    Indicies.push(pos, pos + 1, pos + 1 + this.WorldSize);
-                    Indicies.push(pos, pos + this.WorldSize, pos + 1 + this.WorldSize);
-                }
-            }
-            this.RenderctxGL.bufferData(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, new Uint16Array(Indicies), this.RenderctxGL.STATIC_DRAW);
-            this.GridIndexBufferSize = Indicies.length;
-        };
-
         World.prototype.InitGame = function () {
             this.WillRenderWebGL = true;
             this.PickedUpSand = 0;
@@ -625,18 +492,28 @@ var Pipe;
                 this.WillRenderWebGL = false;
             }
             if (this.CanRenderWebGL) {
-                if (!this.RenderctxGL) {
-                    this.InitGL();
-                }
                 this.GridToCanvas = 4;
                 this.PlaySize = 500;
                 this.WorldSize = (this.PlaySize / this.GridToCanvas) + 1;
+                this.GuiCanvas.width = (this.PlaySize) + 100;
+                this.GuiCanvas.height = (this.PlaySize);
+                this.RenderCanvas.width = (this.PlaySize);
+                this.RenderCanvas.height = (this.PlaySize);
+                if (this.CanRenderWebGL) {
+                    this.webGLSystem.InitGL();
+                }
             } else {
-                this.RenderctxGL = null;
-                this.RenderctxHTML = this.Guictx;
+                //this.RenderctxGL = null;
+                if (!this.RenderctxHTML) {
+                    this.RenderctxHTML = this.Guictx;
+                }
                 this.GridToCanvas = 4;
                 this.PlaySize = 500;
                 this.WorldSize = this.PlaySize / this.GridToCanvas;
+                this.GuiCanvas.width = (this.PlaySize) + 100;
+                this.GuiCanvas.height = (this.PlaySize);
+                this.RenderCanvas.width = (this.PlaySize);
+                this.RenderCanvas.height = (this.PlaySize);
             }
             this.Villages = [];
             this.GroundType = new Grid(this.WorldSize, this.WorldSize); //0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
@@ -674,7 +551,7 @@ var Pipe;
                 this.WorldGenTwoVillages();
             }
             if (this.Map == 3) {
-                this.WorldGenTwoVillages();
+                this.WorldGenGeaser();
             }
             if (this.Map == 4) {
                 this.WorldGenTwoVillages();
@@ -685,7 +562,7 @@ var Pipe;
                 this.WorldGenMountains();
             }
             if (this.WillRenderWebGL) {
-                this.ResetGL();
+                //this.ResetGL();
             }
             this.MaxSand /= this.GridToCanvas;
             this.GotoHUD();
@@ -701,10 +578,10 @@ var Pipe;
             this.GameState = 3;
             this.GameSelection = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
             this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize, false);
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false)); //1
-            this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start")); //3
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false)); //5
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 290, 0, 90, 50, ["WebGL", "HTML"], 15, false)); //7
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false, 2)); //1
+            this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start", 15, false)); //3
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false, 2)); //5
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 290, 0, 90, 50, ["WebGL", "HTML"], 15, false, 2)); //7
         };
         World.prototype.SetGameSelectionCustom = function (State) {
             if (!State) {
@@ -723,11 +600,11 @@ var Pipe;
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 0, 100, 50, "Restart", 15)); //1
             this.Hud.AddElement(new Button(this.Hud, this.PlaySize, 50, 100, 50, "Main Menu", 15)); //3
             this.Hud.AddElement(new Lable(this.PlaySize, 125, "Time:", 15, false));
-            this.Hud.AddElement(new Lable(this.PlaySize, 150, "Time Number here", 15, false)); //5
+            this.Hud.AddElement(new Lable(this.PlaySize, 150, "Time Number here", 15, false, 0, true)); //5
             this.Hud.AddElement(new Lable(this.PlaySize, 200, "Sand:", 15, false));
-            this.Hud.AddElement(new Lable(this.PlaySize, 225, "Sand Number here", 15, false)); //7
+            this.Hud.AddElement(new Lable(this.PlaySize, 225, "Sand Number here", 15, false, 0, true)); //7
             this.Hud.AddElement(new Lable(this.PlaySize, 250, "Lives:", 15, false));
-            this.Hud.AddElement(new Lable(this.PlaySize, 275, "Live Number here", 15, false)); //9
+            this.Hud.AddElement(new Lable(this.PlaySize, 275, "Live Number here", 15, false, 0, true)); //9
             this.DeltaTimeCalculate();
         };
         World.prototype.GotoLoseScreen = function () {
@@ -751,6 +628,14 @@ var Pipe;
             x *= this.GridToCanvas / 5;
             y *= this.GridToCanvas / 5;
             var val = Math.sin((x - (y / SeedX)) / SeedZ) * SeedY;
+            return val;
+        };
+        World.prototype.MidHillGen = function (x, y, SeedX, SeedY, SeedZ) {
+            x *= this.GridToCanvas / 5;
+            y *= this.GridToCanvas / 5;
+            x -= this.WorldSize / 2;
+            y -= this.WorldSize / 2;
+            var val = 50 - (((x * x) + (y * y)) / 10);
             return val;
         };
         World.prototype.MountainGen = function (x, y, SeedX, SeedY, SeedZ) {
@@ -812,6 +697,47 @@ var Pipe;
                 }
             }
         };
+        World.prototype.WorldGenGeaser = function (ix, iy) {
+            if (typeof ix === "undefined") { ix = 10; }
+            if (typeof iy === "undefined") { iy = 10; }
+            var InflowX = ix;
+            var InflowY = iy;
+            var SeedX = (Math.random()) + 0.5;
+            var SeedY = (Math.random() * 10);
+            var SeedZ = (Math.random() * 10);
+            var SeedXR = (Math.random() * 100);
+            var SeedYR = (Math.random() * 5);
+            this.RockHeight.MaxHeight = 0;
+            var XLow = 0;
+            var YLow = 0;
+            var Low = -1;
+            for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
+                for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
+                    //this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR))));
+                    this.GroundHeight.SetValueAt(x, y, this.MidHillGen(x, y, SeedX, SeedY, SeedZ));
+                    if (this.GroundHeight.GetValueAt(x, y) < 0) {
+                        this.GroundHeight.SetValueAt(x, y, 0);
+                    }
+                    if (this.GroundHeight.GetValueAt(x, y) < Low || Low == -1) {
+                        XLow = x;
+                        YLow = y;
+                        Low = this.GroundHeight.GetValueAt(x, y);
+                    }
+                }
+            }
+            this.GroundType.SetValueAt(InflowX, InflowY, -2);
+            this.GroundType.SetValueAt(XLow, YLow, -3);
+            for (var i = 0; i < this.HousesRemaining; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var dis = 80;
+                if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
+                    this.Villages.push(new Village(x, y, this.VillageSize, this.VillageSize, this));
+                } else {
+                    i--;
+                }
+            }
+        };
         World.prototype.WorldGenMountains = function (ix, iy) {
             if (typeof ix === "undefined") { ix = 10; }
             if (typeof iy === "undefined") { iy = 10; }
@@ -840,8 +766,8 @@ var Pipe;
                     }
                 }
             }
-            this.GroundType.SetValueAt(InflowX, InflowY, 2);
-            this.GroundType.SetValueAt(XLow, YLow, 3);
+            this.GroundType.SetValueAt(InflowX, InflowY, -2);
+            this.GroundType.SetValueAt(XLow, YLow, -3);
             for (var i = 0; i < this.HousesRemaining; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
                 var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
@@ -1197,83 +1123,6 @@ var Pipe;
                 }
             }
         };
-        World.prototype.RenderWebGL = function () {
-            //Update Colour
-            var Size = 4;
-
-            for (var x = 0; x < this.WorldSize; ++x) {
-                for (var y = 0; y < this.WorldSize; ++y) {
-                    var id = (y + (x * this.WorldSize)) * Size;
-                    var BrightnessDec = Math.min(1, Math.max(0.1, (this.GroundHeight.GetValueAt(x, y) + this.RockHeight.GetValueAt(x, y)) / (this.GroundHeight.MaxHeight + this.RockHeight.MaxHeight)));
-                    var R = BrightnessDec;
-                    var G = BrightnessDec;
-                    var B = BrightnessDec;
-                    if (this.GroundHeight.GetValueAt(x, y) > 0.1) {
-                        R *= 1; //255
-                        G *= 0.78; //200
-                        B *= 0.47; //129
-                    } else {
-                        R *= 0.5; //123/255
-                        G *= 0.5; //123/255
-                        B *= 0.5; //123/255
-                    }
-                    if (this.WaterHeight.GetValueAt(x, y) > 0) {
-                        //00D4FF Water
-                        var BrightnessDecWater = 1 - (this.WaterHeight.GetValueAt(x, y) / (0.5 * this.WaterHeight.MaxHeight));
-
-                        //BrightnessDecWater = Math.max(0, Math.min(1, BrightnessDecWater))
-                        R /= 2; //R = 0
-                        G += 0.83 * BrightnessDecWater; //212/255
-                        G /= Math.max(2, Math.ceil(G));
-                        B += 1; //255
-                        B /= Math.max(2, Math.ceil(G));
-                    }
-                    if (R > 1) {
-                        R = 1;
-                    }
-                    if (G > 1) {
-                        G = 1;
-                    }
-                    if (B > 1) {
-                        B = 1;
-                    }
-                    if (this.ShaderType == 2) {
-                        this.TextureData[id] = R;
-                        this.TextureData[id + 1] = G;
-                        this.TextureData[id + 2] = B;
-                        this.TextureData[id + 3] = 255;
-                        //this.TextureData[id + 3] = this.GroundType.GetValueAt(x, y);
-                    } else {
-                        this.ColourArray[id] = R;
-                        this.ColourArray[id + 1] = G;
-                        this.ColourArray[id + 2] = B;
-                        this.ColourArray[id + 3] = this.GroundType.GetValueAt(x, y);
-                    }
-                }
-            }
-            if (this.ShaderType == 2) {
-                //this.RenderctxGL.texImage2D(this.RenderctxGL.TEXTURE_2D, 0, this.RenderctxGL.RGBA, this.TextureDataWidth, this.TextureDataHeight,0, this.RenderctxGL.RGBA, this.RenderctxGL.UNSIGNED_BYTE, this.TextureData);
-            } else {
-                this.RenderctxGL.bufferData(this.RenderctxGL.ARRAY_BUFFER, this.ColourArray, this.RenderctxGL.STREAM_DRAW);
-            }
-
-            //Render
-            this.RenderctxGL.clear(this.RenderctxGL.COLOR_BUFFER_BIT | this.RenderctxGL.DEPTH_BUFFER_BIT);
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridVertexBuffer);
-            this.RenderctxGL.vertexAttribPointer(this.VertexPos, 2, this.RenderctxGL.FLOAT, false, 0, 0);
-            if (this.ShaderType != 2) {
-                this.RenderctxGL.bindBuffer(this.RenderctxGL.ARRAY_BUFFER, this.GridColourBuffer);
-                this.RenderctxGL.vertexAttribPointer(this.ColourPos, 4, this.RenderctxGL.FLOAT, false, 0, 0);
-            }
-            if (this.ShaderType == 2) {
-                this.RenderctxGL.activeTexture(this.RenderctxGL.TEXTURE0);
-                this.RenderctxGL.bindTexture(this.RenderctxGL.TEXTURE_2D, this.ColourTexture);
-                this.RenderctxGL.uniform1i(this.RenderctxGL.getUniformLocation(this.ShaderProgram, "uSampler"), 0);
-            }
-            this.RenderctxGL.bindBuffer(this.RenderctxGL.ELEMENT_ARRAY_BUFFER, this.GridIndexBuffer);
-            this.RenderctxGL.drawElements(this.RenderctxGL.TRIANGLES, this.GridIndexBufferSize, this.RenderctxGL.UNSIGNED_SHORT, 0);
-            //this.RenderctxGL.drawArrays(this.RenderctxGL.TRIANGLE_STRIP, 0, 3);
-        };
         World.prototype.DeltaTimeCalculate = function () {
             var rtime = Date.now();
             this.DeltaTime = rtime - this.RealTime;
@@ -1285,7 +1134,7 @@ var Pipe;
         };
         World.prototype.Render = function () {
             if (this.WillRenderWebGL) {
-                this.RenderWebGL();
+                this.webGLSystem.RenderWebGL();
             } else {
                 this.RenderHTMLCanvas();
             }
@@ -1404,7 +1253,8 @@ var Pipe;
                         this.GotoCredits();
                     }
                     if (this.MainMenu.Elements[5].State == 2) {
-                        this.InitGL();
+                        this.webGLSystem.InitGL();
+                        //this.InitGL();
                     }
 
                     break;
@@ -1473,6 +1323,7 @@ var Pipe;
         };
         return World;
     })();
+    Pipe.World = World;
     ;
     var MouseX = 0;
     var MouseY = 0;
