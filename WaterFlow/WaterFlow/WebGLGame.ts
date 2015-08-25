@@ -27,8 +27,8 @@ module WebGLGame {
             this.InitRenderCanvas();
             //Shaders e.g.
             //this.InitShaderSmooth();
-            this.InitShaderContoured();
-            //this.InitShaderStaggerd();
+            //this.InitShaderContoured();
+            this.InitShaderStaggerd();
             this.GL.clearColor(0.0, 0.0, 0.0, 1.0);
             this.GL.enable(this.GL.DEPTH_TEST);
             this.ResetGL();
@@ -273,6 +273,16 @@ module WebGLGame {
                             R = 0;
                             G = 1;
                             B = 0;
+                        }
+                        if (this.world.GroundType.GetValueAt(x, y) == 2) {
+                            R = 1;
+                            G = 0;
+                            B = 0;
+                        }
+                        if (this.world.GroundType.GetValueAt(x, y) == 3) {
+                            R = 1;
+                            G = 0;
+                            B = 1;
                         }
                         this.TextureData[id] = R * 255;
                         this.TextureData[id + 1] = G * 255;

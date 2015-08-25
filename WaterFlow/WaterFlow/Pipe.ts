@@ -38,7 +38,7 @@ module Pipe {
             return this.RawGrid[(x * this.SizeX) + y];
             //  }
             //}
-            return -1;
+            //return -1;
         }
         public SetValueAt(x: number, y: number, v: number) {
             if (x >= 0 && x < this.SizeX) {
@@ -74,22 +74,26 @@ module Pipe {
         OffsetX = 0;
         OffsetY = 0;
         Alive = true;
-        constructor(x, y, sx, sy,world:World) {
+        PlanetSide = false;
+        Type = 1;
+        constructor(x, y, sx, sy, world: World,type =1, planet = false) {
             this.PosX = x;
             this.PosY = y;
             this.SizeX = sx;
             this.SizeY = sy;
-            this.OffsetX = Math.round(-sx/2);
-            this.OffsetY = Math.round(-sy/2);
+            this.OffsetX = Math.round(-sx / 2);
+            this.OffsetY = Math.round(-sy / 2);
+            this.Type = type;
+            this.PlanetSide = planet;
             for (var xa = this.PosX; xa < this.PosX + this.SizeX; ++xa) {
                 for (var ya = this.PosY; ya < this.PosY + this.SizeY; ++ya) {
                     if (xa < world.WorldSize && ya < world.WorldSize) {
-                        world.GroundType.SetValueAt(xa, ya, 1);
+                        world.GroundType.SetValueAt(xa, ya, type);
                     }
                 }
             }
         }
-        Update(world: World) {
+        public Update(world: World) {
             if (this.Alive) {
                 for (var x = this.PosX; x < this.PosX + this.SizeX; ++x) {
                     if (!this.Alive) {
@@ -118,6 +122,43 @@ module Pipe {
             }
         }
     }
+    class VillageSand extends Village {
+        public SandPerSecond = 5;
+        constructor(x, y, sx, sy, world: World, planet = false, Sandpersec = 8) {
+            super(x, y, sx, sy, world, 2, planet);
+            this.SandPerSecond = Sandpersec;
+        }
+        public Update(world: World) {
+            var Sides = this.SizeX;//(2 * this.SizeX) + (2 * this.SizeY);
+            for (var x = this.PosX; x < this.PosX + this.SizeX && x < world.WorldSize - 2; ++x) {
+                for (var y = this.PosY; y < this.PosY + this.SizeY && y < world.WorldSize - 2; ++y) {
+                    var offsets = [[1, 0]];//, [0, 1], [-1, 0], [0, -1]];
+                    for (var i = 0; i < offsets.length; ++i) {
+                        var offset = offsets[i];
+                        if (world.GroundType.GetValueAt(x + offset[0], y + offset[1]) == 0 && world.WaterHeight.GetValueAt(x + (offset[0]*2),y + (offset[1]*2)) <= 0) {
+                            world.GroundHeight.AddValueAt(x + offset[0], y + offset[1], this.SandPerSecond * world.DeltaTime / Sides);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    class VillageDiggingMultip extends Village {
+        public MultipDigging = 1.5;
+        public MultipPlacing = 1.5;
+        public MultipSize = 1.5;
+        constructor(x, y, sx, sy, world: World, planet = false, multd = 1.5, multp = 1, mults = 1,type = 3) {
+            super(x, y, sx, sy, world, type, planet);
+            this.MultipDigging = multd;
+            this.MultipPlacing = multp;
+            this.MultipSize = mults;
+        }
+        public Update(world: World) {
+            world.SandDiggingSpeed *= this.MultipDigging;
+            world.SandPlacingSpeed *= this.MultipPlacing;
+            world.SandDiggingSize *= this.MultipSize;
+        }
+    }
     class Element {
         public Active = true;
         public Z = 0;
@@ -143,7 +184,7 @@ module Pipe {
             this.SizeX = sx;
             this.SizeY = sy;
             this.Centered = c;
-            this.Text = new Lable(x, y, txt, fsize, this.Centered,z + 1,false,sy);
+            this.Text = new Lable(x, y, txt, fsize, this.Centered,z + 1,false,sx,sy);
             
             var lx = x + sx / 2;
             var ly = y + sy / 2;
@@ -195,16 +236,18 @@ module Pipe {
     class Lable extends Element {
         public X = 0;
         public Y = 0;
+        public SX = 0;
         public SY = 0;
         public Text = "";
         public TextImage: HTMLImageElement;
         public Dynamic = false;
         public FontSize = 30;
         public Centered = true;
-        constructor(x, y, txt, size= 30, c= true, z = 0,d = false,sy = -1) {
+        constructor(x, y, txt:string, size= 30, c= true, z = 0, d = false, sx = -1, sy = -1) {
             super(z);
             this.X = x;
             this.Y = y;
+            this.SX = sx;
             this.SY = sy;
             this.Text = txt;
             this.FontSize = size;
@@ -212,6 +255,9 @@ module Pipe {
             this.Dynamic = d;
             if (this.SY == -1) {
                 this.SY = this.FontSize * 2;
+            }
+            if (this.SX == -1) {
+                this.SX = this.FontSize * txt.length;
             }
             if (!this.Dynamic) {
                 this.TextImage = document.createElement("img");
@@ -221,11 +267,14 @@ module Pipe {
         public RenderText(gui: Gui) {
             gui.ctx.fillStyle = "#000000";
             gui.ctx.font = this.FontSize.toString() + "px Arial";
-            var x = this.X;
+            gui.ctx.textBaseline = "top";
+            //gui.ctx.textAlign = "top";
+            var x = this.X +10;
             var y = this.Y;
             if (this.Centered) {
-                x = this.X - ((this.Text.length - 1) * (this.FontSize / 4));
-                y = this.Y + (this.FontSize / 4);
+                //x = 10;
+                //x = this.X - ((this.Text.length - 1) * (this.FontSize / 4));
+                //y = this.Y + (this.FontSize / 4);
             }
             gui.ctx.fillText(this.Text, x, y);
         }
@@ -243,15 +292,24 @@ module Pipe {
         ChangeText(txt) {
             this.Text = txt;
             var Canvas = document.createElement("canvas");
-            Canvas.width = this.Text.length * this.FontSize;
+            Canvas.width = this.SX;
             Canvas.height = this.SY;
+            if (this.Centered) {
+                Canvas.width += (this.Text.length * this.FontSize) / 2;
+            }
             var ctx = Canvas.getContext("2d");
             ctx.fillStyle = "#000000";
             ctx.font = this.FontSize.toString() + "px Arial";
-            var x = 0;// (this.Text.length * (this.FontSize / 4));
-            var y = this.SY;// /2;
+            //ctx.textAlign = "start";
+            ctx.textBaseline = "middle";
+            var x = 10;// (this.Text.length * (this.FontSize / 4));
+            var y = (this.SY / 2);
             if (this.Centered) {
-                //y = (this.FontSize/2);
+
+                ctx.textAlign = "center";
+                x = this.SX/2;
+                //ctx.textBaseline = "middle";
+                //y = (this.SY/2);
             }
             ctx.fillText(this.Text, x,y);
             this.TextImage.src = Canvas.toDataURL("image/png");
@@ -272,7 +330,7 @@ module Pipe {
         Drop(gui: Gui) {
             this.Droped = true;
             for (var i = 0; i < this.OptionsNonDisplay.length; ++i) {
-                this.OptionButtons.push(new Button(gui, this.X, this.Y + (this.SizeY * (i + 1)), this.SizeX, this.SizeY, this.OptionsNonDisplay[i], this.Text.FontSize, this.Centered, this.Z));
+                this.OptionButtons.push(new Button(gui, this.X, this.Y + (this.SizeY * (i + 1)), this.SizeX, this.SizeY, this.OptionsNonDisplay[i], this.Text.FontSize, this.Centered, this.Z+2));
                 gui.AddElement(this.OptionButtons[i]);
             }
         }
@@ -284,7 +342,7 @@ module Pipe {
             this.OptionButtons = [];
             this.Droped = false;
             if (Selected != this.OptionSelected) {
-                this.Text.Text = this.Options[Selected];
+                this.Text.ChangeText(this.Options[Selected]);
                 var NewOptions = [];
                 for (var i = 0; i < this.Options.length; ++i) {
                     if (this.Options[i] != this.Options[Selected]) {
@@ -403,6 +461,7 @@ module Pipe {
         public HousesRemaining;
         public HighScore = 0;
         public Map = 0;
+        public MaxSandNormal = 6000;
         public MaxSand = 6000;
         private MainMenu: Gui;
         private Hud: Gui;
@@ -413,6 +472,9 @@ module Pipe {
         public SandDiggingSize = 40;
         public SandDiggingSpeed = 1;
         public SandPlacingSpeed = 1;
+        public SandDiggingSizeNormal = this.SandDiggingSize;
+        public SandDiggingSpeedNormal = this.SandDiggingSpeed;
+        public SandPlacingSpeedNormal = this.SandPlacingSpeed;
         ///Sim values
         public DeltaTime = 1;
         public Gravity = 10;
@@ -442,7 +504,7 @@ module Pipe {
         public SiltMap = new Grid(this.WorldSize, this.WorldSize);
         public SiltMapBuffer = new Grid(this.WorldSize, this.WorldSize);
         public Villages: Array<Village> = [];
-        VillageSize = 4;
+        VillageSize = 2;
         SearchSpace = [[1, 0], [0, 1], [-1, 0], [0, -1]];
         constructor() {
             this.Init();
@@ -497,6 +559,33 @@ module Pipe {
                 this.RenderCanvas.width = (this.PlaySize);
                 this.RenderCanvas.height = (this.PlaySize);
             }
+            switch ((<DropDown>this.GameSelectionCustom.Elements[2]).OptionSelected) {
+                case 0:
+                    //Medium
+                    this.SlumpConst = 0.03;
+                    break;
+                case 1:
+                    //Fast
+                    this.SlumpConst = 0.25;
+                    break;
+                case 2:
+                    //Slow
+                    this.SlumpConst = 0.012;
+                    break;
+            } switch ((<DropDown>this.GameSelectionCustom.Elements[4]).OptionSelected) {
+                case 0:
+                    //Medium
+                    this.PipeLength = 1;
+                    break;
+                case 1:
+                    //Fast
+                    this.PipeLength = 0.01;
+                    break;
+                case 2:
+                    //Slow
+                    this.PipeLength = 10;
+                    break;
+            }
             this.Villages = [];
             this.GroundType = new Grid(this.WorldSize, this.WorldSize);//0 = sand,1 = Obstruction, 2 is 'Source', 3 is 'Sink'
             this.WaterHeight = new Grid(this.WorldSize, this.WorldSize);
@@ -542,6 +631,11 @@ module Pipe {
                 this.HousesRemaining = 5;
                 this.WorldGenMountains();
             }
+            if (this.Map == 6) {
+                this.MaxSandNormal = 25000;//5000
+                this.HousesRemaining = 5;
+                this.WorldGenPlanetSide();
+            }
             if (this.WillRenderWebGL) {
                 //this.ResetGL();
             }
@@ -558,22 +652,19 @@ module Pipe {
         GotoGameSelection() {
             this.GameState = 3;
             this.GameSelection = new Gui(this.Guictx, this.PlaySize, this.PlaySize);
-            this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize,false);
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false,2));//1
+            this.SetGameSelectionCustom(false);
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains","Planetside"], 15, false, 2));//1
             this.GameSelection.AddElement(new Button(this.GameSelection, 0, 100, 100, 50, "Start",15,false));//3
-            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false,2));//5
+            this.GameSelection.AddElement(new DropDown(this.GameSelection, 170, 0, 90, 50, ["Default", "Custom"], 15, false,2));//5
             this.GameSelection.AddElement(new DropDown(this.GameSelection, 290, 0, 90, 50, ["WebGL", "HTML"], 15, false,2));//7
         }
         SetGameSelectionCustom(State) {
-            if (!State) {
-                this.GameSelectionCustom.Active = false;
-            }
-            else {
-                this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize,false);
-                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 0, 0, 150, 50, ["Classic", "Many Villages", "Two Villages", "Geyser of Death", "4 Corners", "Mountains"], 15, false));//1
-                this.GameSelectionCustom.AddElement(new Button(this.GameSelectionCustom, 200, 100, 100, 50, "Start"));//3
-                //this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 170, 0, 90, 50, ["Defualt", "Custom"], 15, false));//1
-            }
+            this.GameSelectionCustom = new Gui(this.Guictx, this.PlaySize, this.PlaySize, false);
+            this.GameSelectionCustom.AddElement(new Lable(330, 100, "Erosion Speed", 15, false));
+            this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 170, 100, 150, 50, ["Medium", "Fast", "Slow"], 15, false, 2));//2
+            this.GameSelectionCustom.AddElement(new Lable(340, 160, "Water Speed", 15, false));
+            this.GameSelectionCustom.AddElement(new DropDown(this.GameSelectionCustom, 170, 160, 150, 50, ["Medium", "Fast", "Slow"], 15, false, 2));//4
+            this.GameSelectionCustom.Active = State;
         }
         GotoHUD() {
             this.GameState = 1;
@@ -675,6 +766,74 @@ module Pipe {
                 else {
                     i--;
                 }
+            }
+        }
+        public WorldGenPlanetSide(ix = 10, iy = 10) {
+            var InflowX = ix;
+            var InflowY = iy;
+            var SeedX = (Math.random()) + 0.5;
+            var SeedY = (Math.random() * 10);
+            var SeedZ = (Math.random() * 10);
+            var SeedXR = (Math.random() * 100);
+            var SeedYR = (Math.random() * 5);
+            this.RockHeight.MaxHeight = 0;
+            var XLow = 0;
+            var YLow = 0;
+            var Low = -1;
+            for (var x = 0; x < this.GroundHeight.SizeX; ++x) {
+                for (var y = 0; y < this.GroundHeight.SizeY; ++y) {
+                    //this.RockHeight.SetValueAt(x, y, Math.max(0,(this.MountainGen(x, y, SeedXR, SeedYR))));
+                    this.GroundHeight.SetValueAt(x, y, (this.SlopeGen(x, y) + this.VallyGen(x, y, SeedX, SeedY, SeedZ)));
+                    if (this.GroundHeight.GetValueAt(x, y) < 0) {
+                        this.GroundHeight.SetValueAt(x, y, 0);
+                    }
+                    if (this.GroundHeight.GetValueAt(x, y) < Low || Low == -1) {
+                        XLow = x;
+                        YLow = y;
+                        Low = this.GroundHeight.GetValueAt(x, y);
+                    }
+                }
+            }
+            this.GroundType.SetValueAt(InflowX, InflowY, -2);
+            this.GroundType.SetValueAt(XLow, YLow, -3);
+            var Distribution = [5,5,1];//Normal village,SandCreating village, SandDig speed village,SandPlace speed village 
+            for (var i = 0; i < Distribution[0]; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var dis = 80;
+                if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
+                    this.Villages.push(new Village(x, y, this.VillageSize, this.VillageSize, this,1, true));
+                }
+                else {
+                    i--;
+                }
+            }
+
+            for (var i = 0; i < Distribution[1]; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var dis = 80;
+                if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
+                    this.Villages.push(new VillageSand(x, y, this.VillageSize, this.VillageSize, this, true));
+                }
+                else {
+                    i--;
+                }
+            }
+            for (var i = 0; i < Distribution[2]; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var dis = 80;
+                if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
+                    this.Villages.push(new VillageDiggingMultip(x, y, this.VillageSize, this.VillageSize, this,true,2,1,1,3));
+                }
+                else {
+                    i--;
+                }
+            }
+            this.HousesRemaining = 0;
+            for (var i = 0; i < Distribution.length; ++i) {
+                this.HousesRemaining += Distribution[i];
             }
         }
         public WorldGenGeaser(ix = 10, iy = 10) {
@@ -785,9 +944,9 @@ module Pipe {
                         //var Waves = Math.max(0, (Math.sin((this.Time - this.StartTime) / Factor) * (this.Time - this.StartTime) / (Factor * Math.PI)));
                         //var Waves = Math.max(0,(0.49 * this.Time * Math.sin(this.Time)) + (0.5 * this.Time));
                         var Waves = (this.Time - this.StartTime) * this.GridToCanvas;
-                        var IFlow = Waves * this.Inflow;
+                        var IFlow = Waves * this.Inflow * this.DeltaTime;
                         //document.getElementById("Flow").innerHTML = IFlow.toString();
-                        this.WaterHeight.AddValueAt(x, y, IFlow);
+                        this.WaterHeight.AddValueAt(x, y, Math.max(this.WaterHeight.MaxHeight, IFlow));
                         this.SiltMap.AddValueAt(x, y, this.SedimentCapacityConst);
                     }
                     if (this.GroundType.GetValueAt(x, y) == -3) {
@@ -921,26 +1080,25 @@ module Pipe {
         GetTilt(x, y): number {
             var DX = 0;
             var DY = 0;
-            var count = 0;
+            var countx = 0;
+            var county = 0;
             for (var i = -1; i < 1; ++i) {
                 if (!(x + i < 0 || y < 0 || x + i > this.GroundHeight.SizeX || y > this.GroundHeight.SizeY)) {
                     if (!(x + i + 1 < 0 || y < 0 || x + i + 1 > this.GroundHeight.SizeX || y > this.GroundHeight.SizeY)) {
                         DX += (this.RockHeight.GetValueAt(x + i, y) + this.GroundHeight.GetValueAt(x + i, y)) - (this.RockHeight.GetValueAt(x + i + 1, y) + this.GroundHeight.GetValueAt(x + i + 1, y));
-                        ++count;
+                        ++countx;
                     }
                 }
-            }
-            DX /= count;
-            count = 0;
-            for (var i = -1; i < 1; ++i) {
                 if (!(x < 0 || y + i < 0 || x > this.GroundHeight.SizeX || y + i > this.GroundHeight.SizeY)) {
                     if (!(x < 0 || y + i + 1 < 0 || x > this.GroundHeight.SizeX || y + i + 1 > this.GroundHeight.SizeY)) {
                         DY += (this.RockHeight.GetValueAt(x, y + i) + this.GroundHeight.GetValueAt(x, y + i)) - (this.RockHeight.GetValueAt(x, y + i + 1) + this.GroundHeight.GetValueAt(x, y + i + 1));
-                        ++count;
+                        ++county;
                     }
                 }
             }
-            DY /= count;
+            DX /= countx;
+            DY /= county;
+            //ATAN calls are slow, use another method   
             var theta = Math.atan(DX) + Math.atan(DY);
             //avradge tilt
             return theta / 2;
@@ -1005,8 +1163,17 @@ module Pipe {
                 this.Villages[i].Update(this);
             }
         }
+        UpdatePlanetside() {
+            this.MaxSand = this.MaxSandNormal;
+            this.SandDiggingSpeed = this.SandDiggingSpeedNormal;
+            this.SandPlacingSpeed = this.SandPlacingSpeedNormal;
+            this.SandDiggingSize = this.SandDiggingSizeNormal;
+        }
         Update() {
-            this.Time += this.DeltaTime / (this.GameTimeScale*1000);
+            this.Time += this.DeltaTime / (this.GameTimeScale * 1000);
+            if (this.Map == 6) {
+                this.UpdatePlanetside();
+            }
             for (var i = 0; i < this.UpdatePerTick; ++i) {
                 if (this.Time >= this.StartTime) { this.UpdateWorldFlow(); }
                 this.UpdateVillages();
@@ -1118,7 +1285,7 @@ module Pipe {
                 Direction = this.SandPlacingSpeed;
             }
             if (Direction != 0) {
-                this.ManipulateSand(MouseChunkX, MouseChunkY, Math.round(this.SandDiggingSize/this.GridToCanvas), Direction, 0.7);
+                this.ManipulateSand(MouseChunkX, MouseChunkY, Math.round(this.SandDiggingSize/this.GridToCanvas), Direction, 0.7*this.GridToCanvas);
             }
             //Button = -1;
         }
@@ -1141,14 +1308,14 @@ module Pipe {
             var SizeOffset = Size / 2;
             var Area = 0;
             var Factor = factor * this.DeltaTime;
-            var Depth = 0;
-            if (Direction > 0) {
+            var Depth = this.WaterHeight.MaxHeight;
+            if (Direction < 0) {
                 Depth = 15;
             }
             var Min = -this.DistributionFunction(-SizeOffset, 0);
-            for (var xo = 0; xo < Size; ++xo) {
+            for (var xo = 0; xo <= Size; ++xo) {
                 var X = Math.round(ChunkX + (xo - SizeOffset));
-                for (var yo = 0; yo < Size; ++yo) {
+                for (var yo = 0; yo <= Size; ++yo) {
                     var Y = Math.round(ChunkY + (yo - SizeOffset));
                     if (this.CanDig(X, Y, xo, yo, SizeOffset, Min, Depth)) {
                         Area += this.DistributionFunction(xo - SizeOffset, yo - SizeOffset) + Min;
@@ -1158,9 +1325,9 @@ module Pipe {
             if (Factor * Area * Direction> this.PickedUpSand) {
                 Factor = (this.PickedUpSand / Area) * this.DeltaTime;
             }
-            for (var xo = 0; xo < Size; ++xo) {
+            for (var xo = 0; xo <= Size; ++xo) {
                 var X = Math.round(ChunkX + (xo - SizeOffset));
-                for (var yo = 0; yo < Size; ++yo) {
+                for (var yo = 0; yo <= Size; ++yo) {
                     var Y = Math.round(ChunkY + (yo - SizeOffset));
                     if (this.CanDig(X, Y, xo, yo, SizeOffset, Min, Depth)) {
                         //Simulate
@@ -1210,9 +1377,9 @@ module Pipe {
                 case 1://Game
                     this.DeltaTimeCalculate();
                     this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
-                    (<Lable>this.Hud.Elements[5]).Text = Math.ceil(this.Time).toString();
-                    (<Lable>this.Hud.Elements[7]).Text = this.PickedUpSand.toString();
-                    (<Lable>this.Hud.Elements[9]).Text = this.HousesRemaining.toString();
+                    (<Lable>this.Hud.Elements[5]).Text = this.Time.toFixed(0).toString();
+                    (<Lable>this.Hud.Elements[7]).Text = this.PickedUpSand.toFixed(0).toString();
+                    (<Lable>this.Hud.Elements[9]).Text = this.HousesRemaining.toFixed(0).toString();
                     this.PollInput();
                     this.Render();
                     this.Update();
@@ -1242,17 +1409,21 @@ module Pipe {
                 case 3://Map Selection
                     this.Guictx.clearRect(0, 0, this.GuiCanvas.width, this.GuiCanvas.height);
                     this.GameSelection.Update(MouseX, MouseY, MouseButton);
-                    this.GameSelection.Render();
+                    this.GameSelectionCustom.Update(MouseX, MouseY, MouseButton);
                     if ((<Button>this.GameSelection.Elements[3]).State == 2) {
                         this.InitGame();
                     }
                     if ((<DropDown>this.GameSelection.Elements[5]).OptionSelected == 0) {
-                        this.SetGameSelectionCustom(false);
+                        if (this.GameSelectionCustom.Active == true) {
+                            this.SetGameSelectionCustom(false);
+                        }
                     }
                     else {
-                        this.SetGameSelectionCustom(true);
+                        if (this.GameSelectionCustom.Active == false) {
+                            this.SetGameSelectionCustom(true);
+                        }
                     }
-                    this.GameSelectionCustom.Update(MouseX, MouseY, MouseButton);
+                    this.GameSelection.Render();
                     this.GameSelectionCustom.Render();
                     ///this.GameSelection.Update(MouseX, MouseY, MouseButton);
                     break;
