@@ -471,7 +471,7 @@ module Pipe {
         private GameSelectionCustom: Gui;//custom
         public SandDiggingSize = 40;
         public SandDiggingSpeed = 1;
-        public SandPlacingSpeed = 1;
+        public SandPlacingSpeed = 0.5;
         public SandDiggingSizeNormal = this.SandDiggingSize;
         public SandDiggingSpeedNormal = this.SandDiggingSpeed;
         public SandPlacingSpeedNormal = this.SandPlacingSpeed;
@@ -607,17 +607,17 @@ module Pipe {
             this.Map = (<DropDown>this.GameSelection.Elements[1]).OptionSelected;
             if (this.Map == 0) {//Classic
                 this.HousesRemaining = 5;
-                this.MaxSand = 30000;//6000
+                this.MaxSand = 60000;//6000
                 this.WorldGenClassic();
             }
             if (this.Map == 1) {//ManyVillages
                 this.HousesRemaining = 20;
-                this.MaxSand = 30000;//6000
+                this.MaxSand = 60000;//6000
                 this.WorldGenClassic();
                 this.HousesRemaining = 15;
             }
             if (this.Map == 2) {//Tow villages
-                this.MaxSand = 35000;//7000
+                this.MaxSand = 70000;//7000
                 this.WorldGenTwoVillages();
             }
             if (this.Map == 3) {
@@ -627,12 +627,12 @@ module Pipe {
                 this.WorldGenTwoVillages();
             }
             if (this.Map == 5) {
-                this.MaxSand = 25000;//5000
+                this.MaxSand = 50000;//5000
                 this.HousesRemaining = 5;
                 this.WorldGenMountains();
             }
             if (this.Map == 6) {
-                this.MaxSandNormal = 25000;//5000
+                this.MaxSandNormal = 50000;//5000
                 this.HousesRemaining = 5;
                 this.WorldGenPlanetSide();
             }
