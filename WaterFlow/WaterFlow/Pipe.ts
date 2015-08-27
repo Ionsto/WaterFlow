@@ -796,7 +796,7 @@ module Pipe {
             }
             this.GroundType.SetValueAt(InflowX, InflowY, -2);
             this.GroundType.SetValueAt(XLow, YLow, -3);
-            var Distribution = [5,5,1];//Normal village,SandCreating village, SandDig speed village,SandPlace speed village 
+            var Distribution = [5,5,1,1];//Normal village,SandCreating village, SandDig speed village,SandPlace speed village 
             for (var i = 0; i < Distribution[0]; ++i) {
                 var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
                 var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
@@ -825,7 +825,18 @@ module Pipe {
                 var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
                 var dis = 80;
                 if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
-                    this.Villages.push(new VillageDiggingMultip(x, y, this.VillageSize, this.VillageSize, this,true,2,1,1,3));
+                    this.Villages.push(new VillageDiggingMultip(x, y, this.VillageSize, this.VillageSize, this, true, 2, 1, 1, 3));
+                }
+                else {
+                    i--;
+                }
+            }
+            for (var i = 0; i < Distribution[3]; ++i) {
+                var x = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var y = Math.round(Math.random() * (this.WorldSize - (this.VillageSize + 1)));
+                var dis = 80;
+                if (Math.abs(InflowX - x) * this.GridToCanvas > dis && Math.abs(InflowY - y) * this.GridToCanvas > dis) {
+                    this.Villages.push(new VillageDiggingMultip(x, y, this.VillageSize, this.VillageSize, this, true, 1, 2, 1, 4));
                 }
                 else {
                     i--;
