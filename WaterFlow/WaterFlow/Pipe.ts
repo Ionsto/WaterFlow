@@ -129,6 +129,7 @@ module Pipe {
             this.SandPerSecond = Sandpersec;
         }
         public Update(world: World) {
+            super.Update(world);
             var Sides = this.SizeX;//(2 * this.SizeX) + (2 * this.SizeY);
             for (var x = this.PosX; x < this.PosX + this.SizeX && x < world.WorldSize - 2; ++x) {
                 for (var y = this.PosY; y < this.PosY + this.SizeY && y < world.WorldSize - 2; ++y) {
@@ -154,6 +155,7 @@ module Pipe {
             this.MultipSize = mults;
         }
         public Update(world: World) {
+            super.Update(world);
             world.SandDiggingSpeed *= this.MultipDigging;
             world.SandPlacingSpeed *= this.MultipPlacing;
             world.SandDiggingSize *= this.MultipSize;

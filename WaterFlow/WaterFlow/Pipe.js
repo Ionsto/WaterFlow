@@ -150,6 +150,7 @@ var Pipe;
             this.SandPerSecond = Sandpersec;
         }
         VillageSand.prototype.Update = function (world) {
+            _super.prototype.Update.call(this, world);
             var Sides = this.SizeX;
             for (var x = this.PosX; x < this.PosX + this.SizeX && x < world.WorldSize - 2; ++x) {
                 for (var y = this.PosY; y < this.PosY + this.SizeY && y < world.WorldSize - 2; ++y) {
@@ -182,6 +183,7 @@ var Pipe;
             this.MultipSize = mults;
         }
         VillageDiggingMultip.prototype.Update = function (world) {
+            _super.prototype.Update.call(this, world);
             world.SandDiggingSpeed *= this.MultipDigging;
             world.SandPlacingSpeed *= this.MultipPlacing;
             world.SandDiggingSize *= this.MultipSize;
