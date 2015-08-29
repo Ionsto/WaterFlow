@@ -668,7 +668,7 @@ var Pipe;
                 this.WorldGenMountains();
             }
             if (this.Map == 6) {
-                this.MaxSandNormal = 50000; //5000
+                this.SandDiggingSpeedNormal = this.SandDiggingSpeedNormal = this.MaxSandNormal = 50000; //5000
                 this.HousesRemaining = 5;
                 this.WorldGenPlanetSide();
             }
